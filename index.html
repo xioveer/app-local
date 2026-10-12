@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestor de Academia</title>
+
+  <!-- Ícono de la pestaña (un emoji dibujado con SVG, para no necesitar archivos extra) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+
+  <!-- Tailwind CSS por CDN: genera los estilos a partir de las clases que usamos en el HTML -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+  <!-- =================================================================
+       AVISOS (toasts): mensajes cortos para el usuario.
+       Se rellenan desde app.js con la función mostrarAviso().
+       ================================================================= -->
+  <div id="contenedor-avisos" aria-live="polite"
+       class="pointer-events-none fixed inset-x-4 top-4 z-50 space-y-2 sm:left-auto sm:right-4 sm:w-96"></div>
+
+  <!-- =================================================================
+       INDICADOR DE CARGA: cubre la pantalla mientras se consulta a Supabase.
+       ================================================================= -->
+  <div id="indicador-cargando" role="status" aria-live="polite"
+       class="fixed inset-0 z-40 hidden bg-white/70 backdrop-blur-sm">
+    <div class="flex h-full items-center justify-center">
+      <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 shadow-lg">
+        <svg class="h-5 w-5 animate-spin text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg>
+        <span id="texto-cargando" class="text-sm font-medium text-slate-700">Cargando...</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- =================================================================
+       VISTA: LOGIN
+       Es lo único que se ve si no hay sesión iniciada.
+       Empieza oculta (hidden); app.js decide si mostrarla.
+       ================================================================= -->
+  <section id="vista-login" class="hidden">
+    <div class="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center px-4 py-10">
+
+      <div class="mb-6 text-center">
+        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 text-2xl text-white shadow-lg shadow-indigo-200" aria-hidden="true">🎓</div>
+        <h1 class="mt-4 text-2xl font-bold text-slate-900">Gestor de Academia</h1>
+        <p class="mt-1 text-sm text-slate-500">Inicia sesión para continuar</p>
+      </div>
+
+      <!-- Aviso de configuración: solo aparece si falta config.js o no cargó el SDK -->
+      <div id="aviso-configuracion" role="alert"
+           class="mb-4 hidden rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"></div>
+
+      <!-- novalidate: la validación la hacemos nosotros en JavaScript (app.js) -->
+      <form id="formulario-login" novalidate
+            class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div>
+          <label for="login-correo" class="block text-sm font-medium text-slate-700">Correo electrónico</label>
+          <input id="login-correo" type="email" autocomplete="username" placeholder="admin@academia.com"
+                 class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+        </div>
+
+        <div>
+          <label for="login-contrasena" class="block text-sm font-medium text-slate-700">Contraseña</label>
+          <input id="login-contrasena" type="password" autocomplete="current-password"
+                 class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+        </div>
+
+        <button id="boton-login" type="submit"
+                class="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+          Iniciar sesión
+        </button>
+      </form>
+
+    </div>
+  </section>
+
+
+  <!-- =================================================================
+       APLICACIÓN PRINCIPAL
+       Solo se muestra cuando hay sesión. Contiene el encabezado,
+       el menú de navegación y las vistas (secciones) de la app.
+       ================================================================= -->
+  <div id="app-principal" class="hidden min-h-screen">
+
+    <!-- Encabezado: nombre, usuario y botón de cerrar sesión -->
+    <header class="border-b border-slate-200 bg-white">
+      <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+        <div class="flex min-w-0 items-center gap-3">
+          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-lg text-white" aria-hidden="true">🎓</div>
+          <span class="truncate text-lg font-bold text-slate-900">Gestor de Academia</span>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <span id="usuario-correo" class="hidden max-w-[14rem] truncate text-sm text-slate-500 sm:block"></span>
+          <button id="boton-cerrar-sesion" type="button"
+                  class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+
+      <!-- Menú de navegación: cada botón lleva data-ir-a con el nombre de su vista.
+           El botón de la vista activa recibe aria-current="page" desde app.js
+           y Tailwind lo pinta de índigo con la variante aria-[current=page]. -->
+      <nav aria-label="Secciones" class="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 pb-3">
+        <button type="button" data-ir-a="dashboard"
+                class="shrink-0 rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 aria-[current=page]:bg-indigo-600 aria-[current=page]:text-white">
+          Dashboard
+        </button>
+        <button type="button" data-ir-a="estudiantes"
+                class="shrink-0 rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 aria-[current=page]:bg-indigo-600 aria-[current=page]:text-white">
+          Estudiantes
+        </button>
+        <button type="button" data-ir-a="asistencia"
+                class="shrink-0 rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 aria-[current=page]:bg-indigo-600 aria-[current=page]:text-white">
+          Asistencia
+        </button>
+        <button type="button" data-ir-a="disciplinas"
+                class="shrink-0 rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 aria-[current=page]:bg-indigo-600 aria-[current=page]:text-white">
+          Disciplinas
+        </button>
+      </nav>
+    </header>
+
+    <!-- Contenido principal. Cada <section data-vista="..."> es una vista;
+         app.js muestra solo una a la vez quitando/poniendo la clase "hidden". -->
+    <main class="mx-auto max-w-6xl px-4 py-6">
+
+      <!-- Vista: Dashboard (se construye en la Fase 5) -->
+      <section data-vista="dashboard" class="hidden">
+        <h2 class="text-xl font-bold text-slate-900">Dashboard</h2>
+        <p class="mt-2 text-sm text-slate-500">Aquí irán las tarjetas de resumen (Fase 5).</p>
+      </section>
+
+      <!-- Vista: Estudiantes (se construye en la Fase 3) -->
+      <section data-vista="estudiantes" class="hidden">
+        <h2 class="text-xl font-bold text-slate-900">Estudiantes</h2>
+        <p class="mt-2 text-sm text-slate-500">Aquí irán el formulario, el buscador y la tabla (Fase 3).</p>
+      </section>
+
+      <!-- Vista: Asistencia (se construye en la Fase 4) -->
+      <section data-vista="asistencia" class="hidden">
+        <h2 class="text-xl font-bold text-slate-900">Asistencia</h2>
+        <p class="mt-2 text-sm text-slate-500">Aquí irá la lista para marcar presentes y ausentes (Fase 4).</p>
+      </section>
+
+      <!-- Vista: Disciplinas (se construye en la Fase 3) -->
+      <section data-vista="disciplinas" class="hidden">
+        <h2 class="text-xl font-bold text-slate-900">Disciplinas</h2>
+        <p class="mt-2 text-sm text-slate-500">Aquí irá la lista y el formulario para agregar disciplinas (Fase 3).</p>
+      </section>
+
+    </main>
+  </div>
+
+
+  <!-- =================================================================
+       SCRIPTS (el orden importa)
+       1. SDK de Supabase  → crea window.supabase
+       2. config.js        → define SUPABASE_URL y SUPABASE_ANON_KEY
+       3. app.js           → la lógica, que usa lo anterior
+       ================================================================= -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
