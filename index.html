@@ -157,10 +157,95 @@
          app.js muestra solo una a la vez quitando/poniendo la clase "hidden". -->
     <main class="mx-auto max-w-6xl px-4 py-6">
 
-      <!-- Vista: Dashboard (se construye en la Fase 5) -->
+      <!-- Vista: Dashboard (resumen de estudiantes, pagos y asistencia de hoy).
+           Los números empiezan en "—" y app.js los rellena en cargarDashboard(). -->
       <section data-vista="dashboard" class="hidden">
-        <h2 class="text-xl font-bold text-slate-900">Dashboard</h2>
-        <p class="mt-2 text-sm text-slate-500">Aquí irán las tarjetas de resumen (Fase 5).</p>
+
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Dashboard</h2>
+            <p id="texto-actualizacion-dashboard" class="mt-1 text-sm text-slate-500"></p>
+          </div>
+          <button id="boton-actualizar-dashboard" type="button"
+                  class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            ↻ Actualizar
+          </button>
+        </div>
+
+        <!-- Tarjetas: estudiantes activos y estado de pago (solo cuentan los activos) -->
+        <div class="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="flex items-center gap-2 text-sm font-medium text-slate-500">
+              <span class="h-2.5 w-2.5 rounded-full bg-indigo-500" aria-hidden="true"></span>
+              Estudiantes activos
+            </div>
+            <p id="dash-activos" class="mt-2 text-3xl font-bold text-slate-900">—</p>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="flex items-center gap-2 text-sm font-medium text-slate-500">
+              <span class="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true"></span>
+              Pagos al día
+            </div>
+            <p id="dash-al-dia" class="mt-2 text-3xl font-bold text-slate-900">—</p>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="flex items-center gap-2 text-sm font-medium text-slate-500">
+              <span class="h-2.5 w-2.5 rounded-full bg-amber-500" aria-hidden="true"></span>
+              Pagos pendientes
+            </div>
+            <p id="dash-pendientes" class="mt-2 text-3xl font-bold text-slate-900">—</p>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="flex items-center gap-2 text-sm font-medium text-slate-500">
+              <span class="h-2.5 w-2.5 rounded-full bg-rose-500" aria-hidden="true"></span>
+              Pagos vencidos
+            </div>
+            <p id="dash-vencidos" class="mt-2 text-3xl font-bold text-slate-900">—</p>
+          </div>
+        </div>
+
+        <!-- Asistencia de hoy: cuenta solo lo que está guardado en la base de datos.
+             Tiene tres estados (app.js muestra uno y oculta los otros):
+             1) hay registros → porcentaje, barra y presentes/ausentes
+             2) nadie tiene registro → "Aún no se ha tomado asistencia hoy"
+             3) no hay estudiantes activos -->
+        <div class="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 class="text-lg font-semibold text-slate-900">Asistencia de hoy</h3>
+            <span id="dash-fecha" class="text-sm text-slate-500"></span>
+          </div>
+
+          <div id="dash-asistencia-con-datos" class="mt-4 hidden">
+            <div class="flex items-end gap-3">
+              <p id="dash-porcentaje" class="text-4xl font-bold text-slate-900"></p>
+              <p class="pb-1 text-sm text-slate-500">de presentes sobre los registrados</p>
+            </div>
+            <div class="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-slate-200" role="presentation">
+              <div id="dash-barra" class="h-full rounded-full bg-emerald-500" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <p id="dash-asistencia-sin-datos" class="mt-4 hidden text-lg font-medium text-slate-600">Aún no se ha tomado asistencia hoy</p>
+          <p id="dash-asistencia-sin-estudiantes" class="mt-4 hidden text-lg font-medium text-slate-600">No hay estudiantes activos todavía.</p>
+
+          <dl id="dash-asistencia-cifras" class="mt-5 hidden grid grid-cols-3 gap-3">
+            <div id="dash-bloque-presentes" class="rounded-xl bg-emerald-50 p-3">
+              <dt class="text-xs font-medium text-emerald-800">Presentes</dt>
+              <dd id="dash-presentes" class="mt-1 text-2xl font-bold text-emerald-900"></dd>
+            </div>
+            <div id="dash-bloque-ausentes" class="rounded-xl bg-rose-50 p-3">
+              <dt class="text-xs font-medium text-rose-800">Ausentes</dt>
+              <dd id="dash-ausentes" class="mt-1 text-2xl font-bold text-rose-900"></dd>
+            </div>
+            <div class="rounded-xl bg-amber-50 p-3">
+              <dt class="text-xs font-medium text-amber-800">Sin registrar</dt>
+              <dd id="dash-sin-registrar" class="mt-1 text-2xl font-bold text-amber-900"></dd>
+            </div>
+          </dl>
+        </div>
       </section>
 
       <!-- Vista: Estudiantes (formulario, buscador, filtros y tabla) -->

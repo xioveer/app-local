@@ -11,8 +11,9 @@
      5. ESTUDIANTES     → tabla, buscador, filtros, formulario (crear/editar),
                           desactivar y reactivar
      6. ASISTENCIA      → fecha, interruptores presente/ausente y guardar (upsert)
-     7. NAVEGACIÓN      → mostrar una vista y ocultar las demás
-     8. INICIO          → arranque de la aplicación
+     7. DASHBOARD       → métricas: estudiantes, pagos y asistencia de hoy
+     8. NAVEGACIÓN      → mostrar una vista y ocultar las demás
+     9. INICIO          → arranque de la aplicación
    ===================================================================== */
 
 
@@ -37,6 +38,8 @@ const estado = {
   disciplinasCargadas: false,  // true cuando la carga terminó bien (para no decir "no hay" si falló)
   estudiantesCargados: false,
   idEstudianteEnEdicion: null, // null = el formulario está creando uno nuevo
+
+  dashboardCargado: false,     // true cuando las métricas se cargaron bien al menos una vez
 
   // Asistencia
   estudiantesActivos: [],      // estudiantes con activo = true (los que salen en la lista)
@@ -113,6 +116,26 @@ function guardarReferenciasDelDOM() {
   elementos.avisoSinGuardar = document.getElementById("aviso-sin-guardar");
   elementos.botonGuardarAsistencia = document.getElementById("boton-guardar-asistencia");
   elementos.plantillaFilaAsistencia = document.getElementById("plantilla-fila-asistencia");
+
+  // Dashboard
+  elementos.botonActualizarDashboard = document.getElementById("boton-actualizar-dashboard");
+  elementos.textoActualizacionDashboard = document.getElementById("texto-actualizacion-dashboard");
+  elementos.dashActivos = document.getElementById("dash-activos");
+  elementos.dashAlDia = document.getElementById("dash-al-dia");
+  elementos.dashPendientes = document.getElementById("dash-pendientes");
+  elementos.dashVencidos = document.getElementById("dash-vencidos");
+  elementos.dashFecha = document.getElementById("dash-fecha");
+  elementos.dashAsistenciaConDatos = document.getElementById("dash-asistencia-con-datos");
+  elementos.dashAsistenciaSinDatos = document.getElementById("dash-asistencia-sin-datos");
+  elementos.dashAsistenciaSinEstudiantes = document.getElementById("dash-asistencia-sin-estudiantes");
+  elementos.dashAsistenciaCifras = document.getElementById("dash-asistencia-cifras");
+  elementos.dashPorcentaje = document.getElementById("dash-porcentaje");
+  elementos.dashBarra = document.getElementById("dash-barra");
+  elementos.dashBloquePresentes = document.getElementById("dash-bloque-presentes");
+  elementos.dashBloqueAusentes = document.getElementById("dash-bloque-ausentes");
+  elementos.dashPresentes = document.getElementById("dash-presentes");
+  elementos.dashAusentes = document.getElementById("dash-ausentes");
+  elementos.dashSinRegistrar = document.getElementById("dash-sin-registrar");
 }
 
 // Indica si el SDK de Supabase (cargado por CDN en index.html) está disponible.
@@ -302,6 +325,7 @@ function limpiarDatosDeLaSesion() {
   cerrarFormularioEstudiante();
   limpiarAsistenciaEnPantalla();
   elementos.campoFechaAsistencia.value = "";
+  limpiarDashboardEnPantalla();
 
   llenarSelectsDeDisciplinas(); // sin disciplinas en "estado", los selects quedan vacíos
   dibujarListaDeDisciplinas();
@@ -1305,7 +1329,148 @@ async function abrirVistaAsistencia() {
 
 
 /* =====================================================================
-   7. NAVEGACIÓN
+   7. DASHBOARD
+   ===================================================================== */
+
+// Calcula el porcentaje de "parte" sobre "total" con un decimal (ejemplo: 77.8).
+// El número nunca engaña: no muestra 100 si falta alguien, ni 0 si hay alguien.
+function calcularPorcentaje(parte, total) {
+  let porcentaje = Math.round((parte / total) * 1000) / 10;
+  if (parte < total && porcentaje === 100) {
+    porcentaje = 99.9;
+  }
+  if (parte > 0 && porcentaje === 0) {
+    porcentaje = 0.1;
+  }
+  return porcentaje;
+}
+
+// Pasa un porcentaje a texto con coma decimal: 77.8 → "77,8%" y 100 → "100%".
+function formatearPorcentaje(porcentaje) {
+  return String(porcentaje).replace(".", ",") + "%";
+}
+
+// Calcula todas las cifras del dashboard a partir de dos listas:
+//   estudiantesActivos → filas con id y estado_pago (solo los activos)
+//   asistenciasDeHoy   → filas con estudiante_id y asistio (las guardadas para hoy)
+// Solo cuentan los registros de estudiantes activos: si alguien se desactivó después de
+// tomar asistencia, su registro se ignora, para que "registrados" + "sin registrar" = activos.
+function calcularMetricasDelDashboard(estudiantesActivos, asistenciasDeHoy) {
+  const idsActivos = new Set(estudiantesActivos.map((estudiante) => estudiante.id));
+  const registros = asistenciasDeHoy.filter((registro) => idsActivos.has(registro.estudiante_id));
+
+  const presentes = registros.filter((registro) => registro.asistio).length;
+  const registrados = registros.length;
+
+  return {
+    activos: estudiantesActivos.length,
+    alDia: estudiantesActivos.filter((e) => e.estado_pago === "al_dia").length,
+    pendientes: estudiantesActivos.filter((e) => e.estado_pago === "pendiente").length,
+    vencidos: estudiantesActivos.filter((e) => e.estado_pago === "vencido").length,
+    presentes: presentes,
+    ausentes: registrados - presentes,
+    registrados: registrados,
+    sinRegistrar: estudiantesActivos.length - registrados,
+    // Sin registros no hay porcentaje (null): se muestra un texto en su lugar.
+    porcentaje: registrados > 0 ? calcularPorcentaje(presentes, registrados) : null,
+  };
+}
+
+// Escribe las cifras en las tarjetas. La tarjeta de asistencia tiene tres estados:
+//   1) hay registros hoy              → porcentaje, barra, presentes, ausentes y sin registrar
+//   2) nadie tiene registro hoy       → "Aún no se ha tomado asistencia hoy" y sin registrar
+//   3) no hay estudiantes activos     → "No hay estudiantes activos todavía."
+function dibujarDashboard(metricas, fechaHoy) {
+  elementos.dashActivos.textContent = metricas.activos;
+  elementos.dashAlDia.textContent = metricas.alDia;
+  elementos.dashPendientes.textContent = metricas.pendientes;
+  elementos.dashVencidos.textContent = metricas.vencidos;
+
+  const hayActivos = metricas.activos > 0;
+  const hayRegistros = metricas.registrados > 0;
+
+  elementos.dashFecha.textContent = formatearFecha(fechaHoy);
+  elementos.dashAsistenciaConDatos.classList.toggle("hidden", !hayRegistros);
+  elementos.dashAsistenciaSinDatos.classList.toggle("hidden", !(hayActivos && !hayRegistros));
+  elementos.dashAsistenciaSinEstudiantes.classList.toggle("hidden", hayActivos);
+  elementos.dashAsistenciaCifras.classList.toggle("hidden", !hayActivos);
+  elementos.dashBloquePresentes.classList.toggle("hidden", !hayRegistros);
+  elementos.dashBloqueAusentes.classList.toggle("hidden", !hayRegistros);
+
+  if (hayRegistros) {
+    elementos.dashPorcentaje.textContent = formatearPorcentaje(metricas.porcentaje);
+    elementos.dashBarra.style.width = metricas.porcentaje + "%";
+    elementos.dashPresentes.textContent = metricas.presentes;
+    elementos.dashAusentes.textContent = metricas.ausentes;
+  }
+  elementos.dashSinRegistrar.textContent = metricas.sinRegistrar;
+}
+
+// Deja el dashboard en blanco ("—"). Se usa al cerrar sesión para no dejar datos en pantalla.
+function limpiarDashboardEnPantalla() {
+  estado.dashboardCargado = false;
+
+  [elementos.dashActivos, elementos.dashAlDia, elementos.dashPendientes, elementos.dashVencidos]
+    .forEach((tarjeta) => { tarjeta.textContent = "—"; });
+
+  elementos.dashFecha.textContent = "";
+  elementos.textoActualizacionDashboard.textContent = "";
+  elementos.dashAsistenciaConDatos.classList.add("hidden");
+  elementos.dashAsistenciaSinDatos.classList.add("hidden");
+  elementos.dashAsistenciaSinEstudiantes.classList.add("hidden");
+  elementos.dashAsistenciaCifras.classList.add("hidden");
+}
+
+// Pide a Supabase los estudiantes activos y la asistencia guardada para HOY (fecha local),
+// calcula las métricas y las muestra. Devuelve true si salió bien y false si hubo un error.
+// Las dos consultas deben salir bien: si una falla no se cambia nada en pantalla.
+// (Supabase devuelve como máximo 1000 filas por consulta; para una academia es suficiente.)
+async function cargarDashboard() {
+  mostrarCargando("Actualizando métricas...");
+  try {
+    const hoy = fechaDeHoy();
+
+    const respuestaEstudiantes = await clienteSupabase
+      .from("estudiantes")
+      .select("id, estado_pago")
+      .eq("activo", true);
+    if (respuestaEstudiantes.error) throw respuestaEstudiantes.error;
+
+    const respuestaAsistencias = await clienteSupabase
+      .from("asistencias")
+      .select("estudiante_id, asistio")
+      .eq("fecha", hoy);
+    if (respuestaAsistencias.error) throw respuestaAsistencias.error;
+
+    const metricas = calcularMetricasDelDashboard(respuestaEstudiantes.data, respuestaAsistencias.data);
+    dibujarDashboard(metricas, hoy);
+
+    estado.dashboardCargado = true;
+    const hora = new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", hour12: false });
+    elementos.textoActualizacionDashboard.textContent = "Actualizado a las " + hora;
+    return true;
+  } catch (error) {
+    mostrarAviso("No se pudieron cargar las métricas. " + describirError(error), "error");
+    elementos.textoActualizacionDashboard.textContent = estado.dashboardCargado
+      ? "No se pudieron actualizar las métricas. Las cifras que ves pueden estar desactualizadas."
+      : "No se pudieron cargar las métricas.";
+    return false;
+  } finally {
+    ocultarCargando();
+  }
+}
+
+// Se ejecuta al pulsar "Actualizar": vuelve a cargar las métricas y confirma con un aviso.
+async function actualizarDashboard() {
+  const actualizado = await cargarDashboard();
+  if (actualizado) {
+    mostrarAviso("Métricas actualizadas.", "exito");
+  }
+}
+
+
+/* =====================================================================
+   8. NAVEGACIÓN
    ===================================================================== */
 
 // Muestra la vista pedida y oculta las demás.
@@ -1327,7 +1492,9 @@ function mostrarVista(nombreVista) {
     }
   });
 
-  if (nombreVista === "estudiantes") {
+  if (nombreVista === "dashboard") {
+    cargarDashboard();
+  } else if (nombreVista === "estudiantes") {
     abrirVistaEstudiantes();
   } else if (nombreVista === "disciplinas") {
     cargarDisciplinas();
@@ -1348,7 +1515,7 @@ async function navegarAVista(nombreVista) {
 
 
 /* =====================================================================
-   8. INICIO
+   9. INICIO
    ===================================================================== */
 
 // Conecta cada botón y formulario con la función que debe ejecutar.
@@ -1377,6 +1544,9 @@ function conectarEventos() {
   elementos.filtroDisciplina.addEventListener("change", dibujarTablaEstudiantes);
   elementos.filtroInactivos.addEventListener("change", dibujarTablaEstudiantes);
   elementos.cuerpoTablaEstudiantes.addEventListener("click", manejarClicEnTablaDeEstudiantes);
+
+  // Dashboard
+  elementos.botonActualizarDashboard.addEventListener("click", actualizarDashboard);
 
   // Asistencia
   elementos.campoFechaAsistencia.addEventListener("change", cambiarFechaDeAsistencia);
