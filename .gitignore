@@ -1,0 +1,8 @@
+# Configuración real con los datos del proyecto de Supabase.
+# NO se sube a GitHub: cada persona crea el suyo a partir de config.example.js
+config.js
+
+# Archivos del sistema operativo y de herramientas
+.DS_Store
+Thumbs.db
+node_modules/
