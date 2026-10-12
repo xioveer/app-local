@@ -263,8 +263,10 @@ function formatearFecha(fecha) {
 
 // Deja el texto en minúsculas y sin tildes, para comparar sin importar
 // mayúsculas ni acentos ("Sofía" y "sofia" quedan iguales).
+// normalize("NFD") separa cada letra de su tilde ("í" → "i" + "´") y el replace borra
+// las tildes, que en Unicode son los caracteres de \u0300 a \u036f.
 function normalizarTexto(texto) {
-  return texto.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
 // Muestra el diálogo de confirmación y espera la respuesta de la persona.
@@ -674,7 +676,7 @@ function crearFilaDeEstudiante(estudiante) {
   fila.dataset.inactivo = estaInactivo ? "true" : "false";
   fila.querySelector('[data-texto="etiqueta-inactivo"]').classList.toggle("hidden", !estaInactivo);
 
-  // Cada botón guarda el id del estudiante; tabla.addEventListener lo lee al hacer clic
+  // Cada botón guarda el id del estudiante; manejarClicEnTablaDeEstudiantes lo lee al hacer clic
   fila.querySelectorAll("button[data-accion]").forEach((boton) => {
     boton.dataset.id = estudiante.id;
   });
