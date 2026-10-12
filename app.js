@@ -31,6 +31,7 @@ const CLAVE_DE_SESION = "academia-sesion";
 // Datos que la aplicación mantiene en memoria mientras hay una sesión iniciada.
 // Se vacían al cerrar sesión (ver limpiarDatosDeLaSesion).
 const estado = {
+  vistaActual: "",             // nombre de la vista que se está mostrando ("dashboard", "asistencia"...)
   disciplinas: [],             // filas de la tabla "disciplinas"
   estudiantes: [],             // filas de "estudiantes" (activos e inactivos)
   disciplinasCargadas: false,  // true cuando la carga terminó bien (para no decir "no hay" si falló)
@@ -288,6 +289,7 @@ function validarCredenciales(correo, contrasena) {
 // formularios, búsquedas...). Se usa al volver al login para que, en un computador
 // compartido, nadie vea datos de la sesión anterior.
 function limpiarDatosDeLaSesion() {
+  estado.vistaActual = "";
   estado.disciplinas = [];
   estado.estudiantes = [];
   estado.disciplinasCargadas = false;
@@ -1310,6 +1312,8 @@ async function abrirVistaAsistencia() {
 // También marca como activo el botón del menú que le corresponde
 // y carga los datos que esa vista necesita.
 function mostrarVista(nombreVista) {
+  estado.vistaActual = nombreVista;
+
   document.querySelectorAll("[data-vista]").forEach((seccion) => {
     const esLaPedida = seccion.dataset.vista === nombreVista;
     seccion.classList.toggle("hidden", !esLaPedida);
@@ -1332,6 +1336,16 @@ function mostrarVista(nombreVista) {
   }
 }
 
+// Se ejecuta al pulsar un botón del menú. Si estás en Asistencia con cambios sin guardar,
+// primero pregunta si se pueden descartar (también cuando pulsas el botón de la misma vista,
+// porque eso vuelve a cargarla y borraría las marcas).
+async function navegarAVista(nombreVista) {
+  if (estado.vistaActual === "asistencia" && !(await confirmarDescartarCambios())) {
+    return;
+  }
+  mostrarVista(nombreVista);
+}
+
 
 /* =====================================================================
    8. INICIO
@@ -1345,7 +1359,7 @@ function conectarEventos() {
 
   // Menú de navegación
   document.querySelectorAll("[data-ir-a]").forEach((boton) => {
-    boton.addEventListener("click", () => mostrarVista(boton.dataset.irA));
+    boton.addEventListener("click", () => navegarAVista(boton.dataset.irA));
   });
 
   // Disciplinas
