@@ -49,7 +49,7 @@ from (values
   -- Guitarra
   ('Isabella Rojas Peña',   11, 'Guitarra',         'Principiante', 'Julián Rojas',   '300 000 0005', 'al_dia',    true),
   ('Daniel Herrera Lugo',   16, 'Guitarra',         'Intermedio',   'Patricia Lugo',  '300 000 0006', 'pendiente', true),
-  -- Estudiante adulto: sin acudiente (el campo es opcional).
+  -- Estudiante adulto: sin acudiente (solo es obligatorio para menores de 18).
   ('Camilo Vargas Soto',    28, 'Guitarra',         'Adultos',      null,             '300 000 0007', 'al_dia',    true),
 
   -- Danza folclórica

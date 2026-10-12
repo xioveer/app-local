@@ -179,6 +179,9 @@ function describirError(error) {
   if (/failed to fetch|networkerror|network request failed|fetch failed/i.test(mensaje)) {
     return "No se pudo conectar con Supabase. Revisa tu conexión a Internet y los datos de config.js.";
   }
+  if (/estudiantes_acudiente_menores/.test(mensaje)) {
+    return "Los estudiantes menores de " + EDAD_DE_MAYORIA + " años necesitan nombre y teléfono del acudiente.";
+  }
   if (/jwt expired/i.test(mensaje) || codigo === "PGRST301") {
     return "Tu sesión expiró. Cierra sesión y vuelve a entrar.";
   }

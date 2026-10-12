@@ -4,6 +4,8 @@
 -- CÓMO USARLO:
 --   Supabase → SQL Editor → New query → pegar TODO este archivo → Run.
 --   Es seguro ejecutarlo más de una vez: no borra tablas ni datos.
+--   Si algún paso falla, el SQL Editor de Supabase deshace TODO el script (lo envía
+--   como una sola consulta), así que nunca queda a medias.
 --
 -- ANTES DE USAR LA APP (importante para la seguridad):
 --   1. Authentication → Sign In / Providers → desactivar
@@ -42,8 +44,8 @@ create table if not exists public.estudiantes (
   edad                integer     not null,
   disciplina_id       bigint      not null references public.disciplinas (id),
   categoria           text,                        -- texto libre: "Infantil", "Sub-12", "Principiante"
-  acudiente_nombre    text,                        -- opcional (hay estudiantes adultos)
-  acudiente_telefono  text,                        -- opcional
+  acudiente_nombre    text,                        -- obligatorio si edad < 18 (ver regla 2b)
+  acudiente_telefono  text,                        -- obligatorio si edad < 18 (ver regla 2b)
   estado_pago         text        not null default 'al_dia',
   activo              boolean     not null default true,
   creado_en           timestamptz not null default now(),
@@ -53,6 +55,31 @@ create table if not exists public.estudiantes (
   constraint estudiantes_edad_valida     check (edad between 3 and 99),
   constraint estudiantes_estado_pago_valido
     check (estado_pago in ('al_dia', 'pendiente', 'vencido'))
+);
+
+-- 2b. REGLA: los menores de 18 años necesitan acudiente (nombre y teléfono).
+--     Se agrega con ALTER TABLE (y no dentro de CREATE TABLE) para que también
+--     se aplique a bases de datos que ya existían. Se hace "drop ... if exists"
+--     y luego "add" para poder ejecutar este script varias veces.
+--
+--     nullif(trim(x), '') convierte el texto vacío o de solo espacios en NULL,
+--     así que "is not null" significa "tiene algo escrito".
+--
+--     Si al ejecutar este script aparece el error
+--       check constraint "estudiantes_acudiente_menores" ... is violated by some row
+--     es porque ya hay menores sin acudiente. Con esta consulta los encuentras
+--     (corrígelos con el formulario de la app o desde el Table Editor y vuelve a ejecutar):
+--       select id, nombre_completo, edad from public.estudiantes
+--       where edad < 18
+--         and (nullif(trim(acudiente_nombre), '') is null
+--              or nullif(trim(acudiente_telefono), '') is null);
+alter table public.estudiantes drop constraint if exists estudiantes_acudiente_menores;
+alter table public.estudiantes add constraint estudiantes_acudiente_menores check (
+  edad >= 18
+  or (
+    nullif(trim(acudiente_nombre), '') is not null
+    and nullif(trim(acudiente_telefono), '') is not null
+  )
 );
 
 -- Función que pone la fecha y hora actual en "actualizado_en"
