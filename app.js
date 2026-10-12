@@ -20,6 +20,10 @@
 // Se crea en crearClienteSupabase(), cuando ya sabemos que la configuración es válida.
 let clienteSupabase = null;
 
+// Nombre con el que el SDK guarda la sesión en el localStorage del navegador.
+// Lo fijamos nosotros para saber exactamente qué borrar al cerrar sesión.
+const CLAVE_DE_SESION = "academia-sesion";
+
 // Aquí guardamos los elementos del HTML que usamos con frecuencia.
 // Se llena una sola vez en guardarReferenciasDelDOM().
 const elementos = {};
@@ -58,7 +62,9 @@ function configuracionEsValida() {
 
 // Crea el cliente de Supabase con los datos de config.js.
 function crearClienteSupabase() {
-  clienteSupabase = window.supabase.createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim());
+  clienteSupabase = window.supabase.createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim(), {
+    auth: { storageKey: CLAVE_DE_SESION },
+  });
 }
 
 
@@ -216,18 +222,36 @@ async function iniciarSesion(evento) {
   }
 }
 
-// Cierra la sesión en Supabase y vuelve a la pantalla de login.
+// Borra la sesión guardada en este navegador. Es la red de seguridad de cerrarSesion():
+// así la sesión desaparece aunque el SDK no haya podido hacerlo (por ejemplo, sin Internet).
+function borrarSesionDelNavegador() {
+  try {
+    localStorage.removeItem(CLAVE_DE_SESION);
+  } catch (error) {
+    // Si el navegador bloquea el almacenamiento no hay nada guardado que borrar.
+  }
+}
+
+// Cierra la sesión SIEMPRE en este navegador, aunque falle la red (importante en computadores compartidos).
+// scope "local" = solo termina la sesión de este navegador (no las de otros dispositivos).
+// Si no se pudo avisar al servidor, la persona igual sale al login y ve un aviso.
 async function cerrarSesion() {
   mostrarCargando("Cerrando sesión...");
+  let avisoDeError = "";
   try {
-    const { error } = await clienteSupabase.auth.signOut();
+    const { error } = await clienteSupabase.auth.signOut({ scope: "local" });
     if (error) throw error;
-
-    mostrarLogin();
   } catch (error) {
-    mostrarAviso(describirError(error), "error");
+    avisoDeError = "La sesión se cerró en este navegador, pero no se pudo avisar a Supabase. " + describirError(error);
   } finally {
+    // Pase lo que pase con el servidor, esto siempre se ejecuta.
+    borrarSesionDelNavegador();
+    mostrarLogin();
     ocultarCargando();
+  }
+
+  if (avisoDeError !== "") {
+    mostrarAviso(avisoDeError, "error");
   }
 }
 
