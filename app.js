@@ -4,11 +4,14 @@
    app.js  ·  Lógica de la aplicación (JavaScript vainilla)
 
    Secciones:
-     1. CONFIGURACIÓN   → cliente de Supabase y referencias al HTML
-     2. UTILIDADES      → avisos, indicador de carga, errores
+     1. CONFIGURACIÓN   → cliente de Supabase, estado y referencias al HTML
+     2. UTILIDADES      → avisos, indicador de carga, errores, confirmación
      3. AUTENTICACIÓN   → login, cierre de sesión, revisar sesión
-     4. NAVEGACIÓN      → mostrar una vista y ocultar las demás
-     5. INICIO          → arranque de la aplicación
+     4. DISCIPLINAS     → listar y agregar disciplinas
+     5. ESTUDIANTES     → tabla, buscador, filtros, formulario (crear/editar),
+                          desactivar y reactivar
+     6. NAVEGACIÓN      → mostrar una vista y ocultar las demás
+     7. INICIO          → arranque de la aplicación
    ===================================================================== */
 
 
@@ -24,16 +27,32 @@ let clienteSupabase = null;
 // Lo fijamos nosotros para saber exactamente qué borrar al cerrar sesión.
 const CLAVE_DE_SESION = "academia-sesion";
 
+// Datos que la aplicación mantiene en memoria mientras hay una sesión iniciada.
+// Se vacían al cerrar sesión (ver limpiarDatosDeLaSesion).
+const estado = {
+  disciplinas: [],             // filas de la tabla "disciplinas"
+  estudiantes: [],             // filas de "estudiantes" (activos e inactivos)
+  disciplinasCargadas: false,  // true cuando la carga terminó bien (para no decir "no hay" si falló)
+  estudiantesCargados: false,
+  idEstudianteEnEdicion: null  // null = el formulario está creando uno nuevo
+};
+
 // Aquí guardamos los elementos del HTML que usamos con frecuencia.
 // Se llena una sola vez en guardarReferenciasDelDOM().
 const elementos = {};
 
 // Guarda en "elementos" cada pieza del HTML que el código necesita tocar.
 function guardarReferenciasDelDOM() {
+  // Utilidades
   elementos.contenedorAvisos = document.getElementById("contenedor-avisos");
   elementos.indicadorCargando = document.getElementById("indicador-cargando");
   elementos.textoCargando = document.getElementById("texto-cargando");
+  elementos.dialogoConfirmacion = document.getElementById("dialogo-confirmacion");
+  elementos.tituloConfirmacion = document.getElementById("titulo-confirmacion");
+  elementos.mensajeConfirmacion = document.getElementById("mensaje-confirmacion");
+  elementos.botonConfirmar = document.getElementById("boton-confirmar");
 
+  // Login
   elementos.vistaLogin = document.getElementById("vista-login");
   elementos.avisoConfiguracion = document.getElementById("aviso-configuracion");
   elementos.formularioLogin = document.getElementById("formulario-login");
@@ -41,9 +60,36 @@ function guardarReferenciasDelDOM() {
   elementos.campoContrasena = document.getElementById("login-contrasena");
   elementos.botonLogin = document.getElementById("boton-login");
 
+  // Aplicación principal
   elementos.appPrincipal = document.getElementById("app-principal");
   elementos.usuarioCorreo = document.getElementById("usuario-correo");
   elementos.botonCerrarSesion = document.getElementById("boton-cerrar-sesion");
+
+  // Disciplinas
+  elementos.formularioDisciplina = document.getElementById("formulario-disciplina");
+  elementos.campoNombreDisciplina = document.getElementById("campo-disciplina-nombre");
+  elementos.listaDisciplinas = document.getElementById("lista-disciplinas");
+  elementos.mensajeSinDisciplinas = document.getElementById("mensaje-sin-disciplinas");
+
+  // Estudiantes: formulario
+  elementos.botonNuevoEstudiante = document.getElementById("boton-nuevo-estudiante");
+  elementos.panelFormularioEstudiante = document.getElementById("panel-formulario-estudiante");
+  elementos.tituloFormularioEstudiante = document.getElementById("titulo-formulario-estudiante");
+  elementos.formularioEstudiante = document.getElementById("formulario-estudiante");
+  elementos.campoDisciplinaEstudiante = document.getElementById("campo-disciplina");
+  elementos.ayudaAcudiente = document.getElementById("ayuda-acudiente");
+  elementos.botonCancelarEstudiante = document.getElementById("boton-cancelar-estudiante");
+  elementos.botonGuardarEstudiante = document.getElementById("boton-guardar-estudiante");
+
+  // Estudiantes: buscador, filtros y tabla
+  elementos.campoBusqueda = document.getElementById("filtro-texto");
+  elementos.filtroDisciplina = document.getElementById("filtro-disciplina");
+  elementos.filtroInactivos = document.getElementById("filtro-inactivos");
+  elementos.contadorEstudiantes = document.getElementById("contador-estudiantes");
+  elementos.mensajeSinEstudiantes = document.getElementById("mensaje-sin-estudiantes");
+  elementos.contenedorTablaEstudiantes = document.getElementById("contenedor-tabla-estudiantes");
+  elementos.cuerpoTablaEstudiantes = document.getElementById("cuerpo-tabla-estudiantes");
+  elementos.plantillaFilaEstudiante = document.getElementById("plantilla-fila-estudiante");
 }
 
 // Indica si el SDK de Supabase (cargado por CDN en index.html) está disponible.
@@ -75,6 +121,13 @@ function crearClienteSupabase() {
 // Muestra un aviso (toast) en la esquina. tipo: "exito", "error" o "info".
 // Usa textContent, así que el mensaje nunca se interpreta como HTML.
 function mostrarAviso(mensaje, tipo = "info") {
+  // Si ya hay un aviso idéntico en pantalla, no lo repetimos.
+  const yaEstaEnPantalla = Array.from(elementos.contenedorAvisos.children)
+    .some((aviso) => aviso.textContent === mensaje);
+  if (yaEstaEnPantalla) {
+    return;
+  }
+
   const colores = {
     exito: "bg-emerald-600 text-white",
     error: "bg-rose-600 text-white",
@@ -112,8 +165,10 @@ function ocultarCargando() {
 }
 
 // Convierte un error técnico (casi siempre en inglés) en un mensaje claro en español.
+// "codigo" es el código de error de PostgreSQL que devuelve Supabase (ej. 23505).
 function describirError(error) {
   const mensaje = error && error.message ? error.message : "";
+  const codigo = error && error.code ? error.code : "";
 
   if (/invalid login credentials/i.test(mensaje)) {
     return "Correo o contraseña incorrectos.";
@@ -124,7 +179,47 @@ function describirError(error) {
   if (/failed to fetch|networkerror|network request failed|fetch failed/i.test(mensaje)) {
     return "No se pudo conectar con Supabase. Revisa tu conexión a Internet y los datos de config.js.";
   }
+  if (/jwt expired/i.test(mensaje) || codigo === "PGRST301") {
+    return "Tu sesión expiró. Cierra sesión y vuelve a entrar.";
+  }
+  if (codigo === "42501") {
+    return "No tienes permiso para hacer esto. Cierra sesión y vuelve a entrar.";
+  }
+  if (codigo === "23505") {
+    return "Ya existe un registro con ese valor.";
+  }
+  if (codigo === "23503") {
+    return "Un dato relacionado ya no existe (por ejemplo, la disciplina). Recarga la página e inténtalo de nuevo.";
+  }
+  if (codigo === "23514") {
+    return "Algún dato no cumple las reglas de la base de datos (revisa la edad y el estado de pago).";
+  }
   return mensaje || "Ocurrió un error inesperado.";
+}
+
+// Deja el texto en minúsculas y sin tildes, para comparar sin importar
+// mayúsculas ni acentos ("Sofía" y "sofia" quedan iguales).
+function normalizarTexto(texto) {
+  return texto.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
+// Muestra el diálogo de confirmación y espera la respuesta de la persona.
+// Devuelve una promesa: true si pulsa el botón de confirmar, false si cancela (o pulsa Esc).
+function pedirConfirmacion({ titulo, mensaje, textoConfirmar }) {
+  return new Promise((resolver) => {
+    elementos.tituloConfirmacion.textContent = titulo;
+    elementos.mensajeConfirmacion.textContent = mensaje;
+    elementos.botonConfirmar.textContent = textoConfirmar;
+
+    // returnValue guarda el "value" del botón con el que se cerró el diálogo.
+    elementos.dialogoConfirmacion.returnValue = "";
+    elementos.dialogoConfirmacion.addEventListener(
+      "close",
+      () => resolver(elementos.dialogoConfirmacion.returnValue === "confirmar"),
+      { once: true }
+    );
+    elementos.dialogoConfirmacion.showModal();
+  });
 }
 
 
@@ -149,8 +244,29 @@ function validarCredenciales(correo, contrasena) {
   return "";
 }
 
+// Vacía los datos que la app tenía en memoria y en pantalla (lista de estudiantes,
+// formularios, búsquedas...). Se usa al volver al login para que, en un computador
+// compartido, nadie vea datos de la sesión anterior.
+function limpiarDatosDeLaSesion() {
+  estado.disciplinas = [];
+  estado.estudiantes = [];
+  estado.disciplinasCargadas = false;
+  estado.estudiantesCargados = false;
+  estado.idEstudianteEnEdicion = null;
+
+  elementos.campoBusqueda.value = "";
+  elementos.filtroInactivos.checked = false;
+  elementos.formularioDisciplina.reset();
+  cerrarFormularioEstudiante();
+
+  llenarSelectsDeDisciplinas(); // sin disciplinas en "estado", los selects quedan vacíos
+  dibujarListaDeDisciplinas();
+  dibujarTablaEstudiantes();
+}
+
 // Muestra solo la pantalla de login y oculta la aplicación.
 function mostrarLogin() {
+  limpiarDatosDeLaSesion();
   elementos.appPrincipal.classList.add("hidden");
   elementos.vistaLogin.classList.remove("hidden");
   elementos.campoContrasena.value = "";
@@ -268,11 +384,596 @@ function vigilarCierreDeSesion() {
 
 
 /* =====================================================================
-   4. NAVEGACIÓN
+   4. DISCIPLINAS
+   ===================================================================== */
+
+// Crea un <option> para un <select> (usa textContent: el nombre nunca se interpreta como HTML).
+function crearOpcion(valor, texto) {
+  const opcion = document.createElement("option");
+  opcion.value = valor;
+  opcion.textContent = texto;
+  return opcion;
+}
+
+// Rellena un <select> con las disciplinas. Conserva la opción elegida si todavía existe.
+function llenarSelectDeDisciplinas(select, textoDeLaPrimeraOpcion) {
+  const seleccionActual = select.value;
+
+  select.replaceChildren(crearOpcion("", textoDeLaPrimeraOpcion));
+  estado.disciplinas.forEach((disciplina) => {
+    select.appendChild(crearOpcion(String(disciplina.id), disciplina.nombre));
+  });
+
+  select.value = seleccionActual;
+  if (select.selectedIndex === -1) {
+    select.selectedIndex = 0; // la opción elegida ya no existe: vuelve a la primera
+  }
+}
+
+// Actualiza los dos selects de disciplinas: el filtro de la tabla y el del formulario.
+function llenarSelectsDeDisciplinas() {
+  llenarSelectDeDisciplinas(elementos.filtroDisciplina, "Todas las disciplinas");
+  llenarSelectDeDisciplinas(elementos.campoDisciplinaEstudiante, "Selecciona una disciplina");
+}
+
+// Dibuja la lista de disciplinas de la vista "Disciplinas".
+function dibujarListaDeDisciplinas() {
+  elementos.listaDisciplinas.replaceChildren();
+  // El aviso "no hay disciplinas" solo se muestra si la carga salió bien y la lista está vacía.
+  const mostrarAvisoDeVacio = estado.disciplinasCargadas && estado.disciplinas.length === 0;
+  elementos.mensajeSinDisciplinas.classList.toggle("hidden", !mostrarAvisoDeVacio);
+
+  estado.disciplinas.forEach((disciplina) => {
+    const elemento = document.createElement("li");
+    elemento.className = "rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-sm";
+    elemento.textContent = disciplina.nombre;
+    elementos.listaDisciplinas.appendChild(elemento);
+  });
+}
+
+// Pide las disciplinas a Supabase y actualiza la pantalla.
+// Devuelve true si todo salió bien y false si hubo un error.
+async function cargarDisciplinas() {
+  mostrarCargando("Cargando disciplinas...");
+  try {
+    const { data, error } = await clienteSupabase
+      .from("disciplinas")
+      .select("*")
+      .order("nombre", { ascending: true });
+    if (error) throw error;
+
+    estado.disciplinas = data;
+    estado.disciplinasCargadas = true;
+    llenarSelectsDeDisciplinas();
+    dibujarListaDeDisciplinas();
+    return true;
+  } catch (error) {
+    mostrarAviso("No se pudieron cargar las disciplinas. " + describirError(error), "error");
+    return false;
+  } finally {
+    ocultarCargando();
+  }
+}
+
+// Revisa el nombre de una disciplina nueva.
+// Devuelve un texto con el problema, o "" si está bien.
+function validarNombreDeDisciplina(nombre) {
+  if (nombre === "") {
+    return "Escribe el nombre de la disciplina.";
+  }
+  if (nombre.length < 2) {
+    return "El nombre de la disciplina debe tener al menos 2 letras.";
+  }
+  if (nombre.length > 50) {
+    return "El nombre de la disciplina no puede pasar de 50 letras.";
+  }
+
+  // La base de datos distingue mayúsculas y tildes ("Fútbol" y "futbol" serían distintas),
+  // así que aquí comparamos sin ellas para evitar duplicados que se ven iguales.
+  const yaExiste = estado.disciplinas.some(
+    (disciplina) => normalizarTexto(disciplina.nombre) === normalizarTexto(nombre)
+  );
+  if (yaExiste) {
+    return "Ya existe una disciplina llamada «" + nombre + "».";
+  }
+  return "";
+}
+
+// Se ejecuta al enviar el formulario de disciplinas: valida y guarda la nueva disciplina.
+async function agregarDisciplina(evento) {
+  evento.preventDefault();
+
+  // trim quita espacios de los extremos; replace junta los espacios repetidos en uno solo.
+  const nombre = elementos.campoNombreDisciplina.value.trim().replace(/\s+/g, " ");
+
+  const problema = validarNombreDeDisciplina(nombre);
+  if (problema !== "") {
+    mostrarAviso(problema, "error");
+    elementos.campoNombreDisciplina.focus();
+    return;
+  }
+
+  mostrarCargando("Guardando disciplina...");
+  try {
+    const { error } = await clienteSupabase.from("disciplinas").insert({ nombre: nombre });
+    if (error) throw error;
+
+    elementos.formularioDisciplina.reset();
+    mostrarAviso("Disciplina «" + nombre + "» agregada.", "exito");
+    await cargarDisciplinas();
+  } catch (error) {
+    const mensaje = error.code === "23505"
+      ? "Ya existe una disciplina con ese nombre."
+      : describirError(error);
+    mostrarAviso(mensaje, "error");
+  } finally {
+    ocultarCargando();
+  }
+}
+
+
+/* =====================================================================
+   5. ESTUDIANTES
+   ===================================================================== */
+
+// Texto y colores de la etiqueta de cada estado de pago.
+const ESTILOS_DE_PAGO = {
+  al_dia: { texto: "Al día", clases: "bg-emerald-100 text-emerald-800" },
+  pendiente: { texto: "Pendiente", clases: "bg-amber-100 text-amber-800" },
+  vencido: { texto: "Vencido", clases: "bg-rose-100 text-rose-800" },
+};
+const CLASES_DE_PAGO_INACTIVO = "bg-slate-200 text-slate-500";
+
+// Edad mínima de la que se considera mayor de edad (por debajo, el acudiente es obligatorio).
+const EDAD_DE_MAYORIA = 18;
+
+
+/* ---------- Cargar y mostrar la tabla ---------- */
+
+// Pide todos los estudiantes (activos e inactivos) a Supabase, con el nombre de su disciplina,
+// y actualiza la tabla. El filtro de "Mostrar inactivos" se aplica después, en memoria.
+// Nota: Supabase devuelve como máximo 1000 filas por consulta; para una academia es más que suficiente.
+async function cargarEstudiantes() {
+  mostrarCargando("Cargando estudiantes...");
+  try {
+    const { data, error } = await clienteSupabase
+      .from("estudiantes")
+      .select("*, disciplinas(nombre)")
+      .order("nombre_completo", { ascending: true });
+    if (error) throw error;
+
+    estado.estudiantes = data;
+    estado.estudiantesCargados = true;
+    dibujarTablaEstudiantes();
+  } catch (error) {
+    mostrarAviso("No se pudieron cargar los estudiantes. " + describirError(error), "error");
+  } finally {
+    ocultarCargando();
+  }
+}
+
+// Devuelve los estudiantes que cumplen el filtro de inactivos, la disciplina y el texto buscado.
+// Los tres filtros se combinan: un estudiante debe cumplir todos.
+function obtenerEstudiantesFiltrados() {
+  const textoBuscado = normalizarTexto(elementos.campoBusqueda.value.trim());
+  const idDisciplina = elementos.filtroDisciplina.value; // "" significa todas
+  const mostrarInactivos = elementos.filtroInactivos.checked;
+
+  return estado.estudiantes.filter((estudiante) => {
+    if (!mostrarInactivos && !estudiante.activo) {
+      return false;
+    }
+    if (idDisciplina !== "" && String(estudiante.disciplina_id) !== idDisciplina) {
+      return false;
+    }
+    if (textoBuscado !== "" && !normalizarTexto(estudiante.nombre_completo).includes(textoBuscado)) {
+      return false;
+    }
+    return true;
+  });
+}
+
+// Pone un texto en el elemento de la fila que tenga data-texto="campo".
+function ponerTextoEnFila(fila, campo, texto) {
+  fila.querySelector('[data-texto="' + campo + '"]').textContent = texto;
+}
+
+// Arma el texto del acudiente: "Nombre · Teléfono", o solo lo que exista, o "—".
+function describirAcudiente(estudiante) {
+  const partes = [estudiante.acudiente_nombre, estudiante.acudiente_telefono].filter(Boolean);
+  return partes.length > 0 ? partes.join(" · ") : "—";
+}
+
+// Crea la fila de la tabla para un estudiante, copiando la plantilla del HTML.
+function crearFilaDeEstudiante(estudiante) {
+  const fila = elementos.plantillaFilaEstudiante.content.firstElementChild.cloneNode(true);
+  const estaInactivo = !estudiante.activo;
+
+  ponerTextoEnFila(fila, "nombre", estudiante.nombre_completo);
+  ponerTextoEnFila(fila, "edad", estudiante.edad + " años");
+  ponerTextoEnFila(fila, "disciplina", estudiante.disciplinas ? estudiante.disciplinas.nombre : "—");
+  ponerTextoEnFila(fila, "categoria", estudiante.categoria || "—");
+  ponerTextoEnFila(fila, "acudiente", describirAcudiente(estudiante));
+
+  // Etiqueta del estado de pago (gris si el estudiante está inactivo)
+  const estiloDePago = ESTILOS_DE_PAGO[estudiante.estado_pago];
+  const etiquetaDePago = fila.querySelector('[data-texto="estado-pago"]');
+  etiquetaDePago.textContent = estiloDePago.texto;
+  etiquetaDePago.className += " " + (estaInactivo ? CLASES_DE_PAGO_INACTIVO : estiloDePago.clases);
+
+  // La fila se pinta de gris con data-inactivo (lo detectan las clases group-data-[...] del HTML)
+  fila.dataset.inactivo = estaInactivo ? "true" : "false";
+  fila.querySelector('[data-texto="etiqueta-inactivo"]').classList.toggle("hidden", !estaInactivo);
+
+  // Cada botón guarda el id del estudiante; tabla.addEventListener lo lee al hacer clic
+  fila.querySelectorAll("button[data-accion]").forEach((boton) => {
+    boton.dataset.id = estudiante.id;
+  });
+  fila.querySelector('[data-accion="desactivar"]').classList.toggle("hidden", estaInactivo);
+  fila.querySelector('[data-accion="reactivar"]').classList.toggle("hidden", !estaInactivo);
+
+  return fila;
+}
+
+// Vuelve a dibujar la tabla según los filtros actuales.
+function dibujarTablaEstudiantes() {
+  const lista = obtenerEstudiantesFiltrados();
+  const mostrarInactivos = elementos.filtroInactivos.checked;
+  const totalSinFiltrar = estado.estudiantes.filter((e) => mostrarInactivos || e.activo).length;
+
+  elementos.cuerpoTablaEstudiantes.replaceChildren();
+  lista.forEach((estudiante) => {
+    elementos.cuerpoTablaEstudiantes.appendChild(crearFilaDeEstudiante(estudiante));
+  });
+
+  // Mensaje cuando no hay nada que mostrar (solo si la carga salió bien:
+  // si falló, ya hay un aviso de error y no queremos decir que "no hay estudiantes").
+  const hayFilas = lista.length > 0;
+  const mostrarMensajeDeVacio = estado.estudiantesCargados && !hayFilas;
+  elementos.contenedorTablaEstudiantes.classList.toggle("hidden", !hayFilas);
+  elementos.mensajeSinEstudiantes.classList.toggle("hidden", !mostrarMensajeDeVacio);
+  elementos.mensajeSinEstudiantes.textContent = totalSinFiltrar === 0
+    ? "Todavía no hay estudiantes. Pulsa «+ Nuevo estudiante» para agregar el primero."
+    : "Ningún estudiante coincide con la búsqueda o el filtro.";
+
+  elementos.contadorEstudiantes.textContent = estado.estudiantesCargados
+    ? "Mostrando " + lista.length + " de " + totalSinFiltrar + " estudiantes"
+    : "";
+}
+
+// Se ejecuta al hacer clic en cualquier parte de la tabla.
+// Si el clic fue en un botón de acción, busca al estudiante y ejecuta la acción.
+function manejarClicEnTablaDeEstudiantes(evento) {
+  const boton = evento.target.closest("button[data-accion]");
+  if (boton === null) {
+    return;
+  }
+
+  const estudiante = estado.estudiantes.find((e) => String(e.id) === boton.dataset.id);
+  if (estudiante === undefined) {
+    return;
+  }
+
+  if (boton.dataset.accion === "editar") {
+    abrirFormularioEstudiante(estudiante);
+  } else if (boton.dataset.accion === "desactivar") {
+    desactivarEstudiante(estudiante);
+  } else if (boton.dataset.accion === "reactivar") {
+    reactivarEstudiante(estudiante);
+  }
+}
+
+
+/* ---------- Formulario: abrir, cerrar y leer ---------- */
+
+// Muestra u oculta los asteriscos del acudiente y cambia el texto de ayuda,
+// según la edad escrita: el acudiente es obligatorio solo para menores de 18.
+function actualizarAyudaDeAcudiente() {
+  const edadEscrita = elementos.formularioEstudiante.elements.edad.value;
+  const esMenor = estudianteEsMenor(edadEscrita);
+
+  elementos.formularioEstudiante.querySelectorAll("[data-marca-acudiente]").forEach((marca) => {
+    marca.classList.toggle("hidden", !esMenor);
+  });
+
+  if (esMenor) {
+    elementos.ayudaAcudiente.textContent = "Obligatorio: el estudiante es menor de " + EDAD_DE_MAYORIA + " años.";
+    elementos.ayudaAcudiente.className = "mt-1 text-xs font-medium text-rose-600";
+  } else {
+    elementos.ayudaAcudiente.textContent = "Opcional para estudiantes de " + EDAD_DE_MAYORIA + " años o más.";
+    elementos.ayudaAcudiente.className = "mt-1 text-xs text-slate-500";
+  }
+}
+
+// Abre el formulario. Sin argumento crea un estudiante nuevo; con un estudiante, lo edita.
+function abrirFormularioEstudiante(estudiante = null) {
+  if (estado.disciplinas.length === 0) {
+    mostrarAviso("Primero agrega al menos una disciplina.", "info");
+    mostrarVista("disciplinas");
+    return;
+  }
+
+  limpiarErroresDelFormulario();
+  const formulario = elementos.formularioEstudiante;
+
+  if (estudiante === null) {
+    estado.idEstudianteEnEdicion = null;
+    formulario.reset();
+    elementos.tituloFormularioEstudiante.textContent = "Nuevo estudiante";
+    elementos.botonGuardarEstudiante.textContent = "Guardar estudiante";
+  } else {
+    estado.idEstudianteEnEdicion = estudiante.id;
+    formulario.elements.nombre_completo.value = estudiante.nombre_completo;
+    formulario.elements.edad.value = estudiante.edad;
+    formulario.elements.disciplina_id.value = String(estudiante.disciplina_id);
+    formulario.elements.categoria.value = estudiante.categoria || "";
+    formulario.elements.estado_pago.value = estudiante.estado_pago;
+    formulario.elements.acudiente_nombre.value = estudiante.acudiente_nombre || "";
+    formulario.elements.acudiente_telefono.value = estudiante.acudiente_telefono || "";
+    elementos.tituloFormularioEstudiante.textContent = "Editar estudiante";
+    elementos.botonGuardarEstudiante.textContent = "Guardar cambios";
+  }
+
+  actualizarAyudaDeAcudiente();
+  elementos.panelFormularioEstudiante.classList.remove("hidden");
+  elementos.panelFormularioEstudiante.scrollIntoView({ behavior: "smooth", block: "start" });
+  formulario.elements.nombre_completo.focus({ preventScroll: true });
+}
+
+// Oculta el formulario y lo deja limpio.
+function cerrarFormularioEstudiante() {
+  estado.idEstudianteEnEdicion = null;
+  elementos.formularioEstudiante.reset();
+  limpiarErroresDelFormulario();
+  actualizarAyudaDeAcudiente();
+  elementos.panelFormularioEstudiante.classList.add("hidden");
+}
+
+// Lee lo que la persona escribió en el formulario (todo como texto, sin espacios sobrantes).
+function leerDatosDelFormulario() {
+  const campos = elementos.formularioEstudiante.elements;
+  const limpiar = (texto) => texto.trim().replace(/\s+/g, " ");
+
+  return {
+    nombre_completo: limpiar(campos.nombre_completo.value),
+    edad: campos.edad.value.trim(),
+    disciplina_id: campos.disciplina_id.value,
+    categoria: limpiar(campos.categoria.value),
+    estado_pago: campos.estado_pago.value,
+    acudiente_nombre: limpiar(campos.acudiente_nombre.value),
+    acudiente_telefono: campos.acudiente_telefono.value.trim(),
+  };
+}
+
+
+/* ---------- Formulario: validación ---------- */
+
+// Indica si un texto es una edad válida: solo dígitos y un valor entre 3 y 99.
+function edadEsValida(textoEdad) {
+  return /^\d+$/.test(textoEdad) && Number(textoEdad) >= 3 && Number(textoEdad) <= 99;
+}
+
+// Indica si la edad escrita corresponde a un menor de 18 años.
+// Si todavía no hay una edad numérica escrita, devuelve false.
+function estudianteEsMenor(textoEdad) {
+  return /^\d+$/.test(textoEdad) && Number(textoEdad) < EDAD_DE_MAYORIA;
+}
+
+// Indica si un teléfono tiene un formato razonable:
+// solo dígitos, espacios, +, - y paréntesis, con entre 7 y 15 dígitos.
+function telefonoEsValido(texto) {
+  if (!/^[+()\-\s\d]+$/.test(texto)) {
+    return false;
+  }
+  const cantidadDeDigitos = texto.replace(/\D/g, "").length;
+  return cantidadDeDigitos >= 7 && cantidadDeDigitos <= 15;
+}
+
+// Revisa los datos del formulario y devuelve un objeto con los errores encontrados.
+// La clave es el nombre del campo y el valor es el mensaje. Si está vacío, no hay errores.
+// Las claves se agregan en el mismo orden en que aparecen los campos en pantalla.
+function validarEstudiante(datos) {
+  const errores = {};
+
+  if (datos.nombre_completo.length < 3) {
+    errores.nombre_completo = "Escribe el nombre completo (mínimo 3 letras).";
+  }
+  if (!edadEsValida(datos.edad)) {
+    errores.edad = "La edad debe ser un número entero entre 3 y 99.";
+  }
+  if (datos.disciplina_id === "") {
+    errores.disciplina_id = "Selecciona una disciplina.";
+  }
+  if (!ESTILOS_DE_PAGO[datos.estado_pago]) {
+    errores.estado_pago = "Selecciona el estado de pago.";
+  }
+
+  // El acudiente (nombre y teléfono) es obligatorio solo si el estudiante es menor de 18.
+  const esMenor = estudianteEsMenor(datos.edad);
+
+  if (esMenor && datos.acudiente_nombre.length < 3) {
+    errores.acudiente_nombre = "Escribe el nombre del acudiente (obligatorio para menores de " + EDAD_DE_MAYORIA + " años).";
+  }
+  if (esMenor && datos.acudiente_telefono === "") {
+    errores.acudiente_telefono = "Escribe el teléfono del acudiente (obligatorio para menores de " + EDAD_DE_MAYORIA + " años).";
+  } else if (datos.acudiente_telefono !== "" && !telefonoEsValido(datos.acudiente_telefono)) {
+    errores.acudiente_telefono = "Escribe un teléfono válido (de 7 a 15 dígitos; puedes usar espacios, + y -).";
+  }
+
+  return errores;
+}
+
+// Muestra cada error bajo su campo, marca el campo en rojo y pone el cursor en el primero.
+function mostrarErroresDelFormulario(errores) {
+  const formulario = elementos.formularioEstudiante;
+  const nombresDeCampo = Object.keys(errores);
+
+  nombresDeCampo.forEach((nombre) => {
+    formulario.elements[nombre].setAttribute("aria-invalid", "true");
+
+    const parrafoDeError = formulario.querySelector('[data-error-de="' + nombre + '"]');
+    parrafoDeError.textContent = errores[nombre];
+    parrafoDeError.classList.remove("hidden");
+  });
+
+  formulario.elements[nombresDeCampo[0]].focus();
+}
+
+// Quita todos los errores del formulario.
+function limpiarErroresDelFormulario() {
+  const formulario = elementos.formularioEstudiante;
+
+  formulario.querySelectorAll("[aria-invalid]").forEach((campo) => campo.removeAttribute("aria-invalid"));
+  formulario.querySelectorAll("[data-error-de]").forEach((parrafo) => {
+    parrafo.textContent = "";
+    parrafo.classList.add("hidden");
+  });
+}
+
+// Cuando la persona vuelve a escribir en un campo, se le quita su marca de error.
+function quitarErrorDelCampoEditado(evento) {
+  const campo = evento.target;
+  if (!campo.name) {
+    return;
+  }
+  campo.removeAttribute("aria-invalid");
+
+  const parrafoDeError = elementos.formularioEstudiante.querySelector('[data-error-de="' + campo.name + '"]');
+  if (parrafoDeError !== null) {
+    parrafoDeError.textContent = "";
+    parrafoDeError.classList.add("hidden");
+  }
+}
+
+
+/* ---------- Guardar, desactivar y reactivar ---------- */
+
+// Convierte un texto vacío en null, para guardar "sin dato" en la base de datos.
+function textoONulo(texto) {
+  return texto === "" ? null : texto;
+}
+
+// Arma el objeto que se envía a Supabase, con los tipos que espera cada columna.
+function prepararRegistroDeEstudiante(datos) {
+  return {
+    nombre_completo: datos.nombre_completo,
+    edad: Number(datos.edad),
+    disciplina_id: Number(datos.disciplina_id),
+    categoria: textoONulo(datos.categoria),
+    acudiente_nombre: textoONulo(datos.acudiente_nombre),
+    acudiente_telefono: textoONulo(datos.acudiente_telefono),
+    estado_pago: datos.estado_pago,
+  };
+}
+
+// Se ejecuta al enviar el formulario: valida y luego crea o actualiza el estudiante.
+async function guardarEstudiante(evento) {
+  evento.preventDefault();
+  limpiarErroresDelFormulario();
+
+  const datos = leerDatosDelFormulario();
+  const errores = validarEstudiante(datos);
+  if (Object.keys(errores).length > 0) {
+    mostrarErroresDelFormulario(errores);
+    mostrarAviso("Revisa los campos marcados en rojo.", "error");
+    return;
+  }
+
+  const registro = prepararRegistroDeEstudiante(datos);
+  const estaEditando = estado.idEstudianteEnEdicion !== null;
+
+  mostrarCargando(estaEditando ? "Guardando cambios..." : "Guardando estudiante...");
+  try {
+    if (estaEditando) {
+      // .select() al final hace que Supabase devuelva las filas modificadas,
+      // así podemos avisar si el estudiante ya no existe.
+      const { data, error } = await clienteSupabase
+        .from("estudiantes")
+        .update(registro)
+        .eq("id", estado.idEstudianteEnEdicion)
+        .select();
+      if (error) throw error;
+      if (data.length === 0) {
+        throw new Error("No se encontró el estudiante. Puede que ya no exista; recarga la página.");
+      }
+    } else {
+      const { error } = await clienteSupabase.from("estudiantes").insert(registro);
+      if (error) throw error;
+    }
+
+    cerrarFormularioEstudiante();
+    mostrarAviso(estaEditando ? "Cambios guardados." : "Estudiante creado.", "exito");
+    await cargarEstudiantes();
+  } catch (error) {
+    mostrarAviso(describirError(error), "error");
+  } finally {
+    ocultarCargando();
+  }
+}
+
+// Cambia el campo "activo" de un estudiante (borrado lógico: el registro no se elimina).
+async function cambiarEstadoActivo(estudiante, activo) {
+  mostrarCargando(activo ? "Reactivando estudiante..." : "Desactivando estudiante...");
+  try {
+    const { data, error } = await clienteSupabase
+      .from("estudiantes")
+      .update({ activo: activo })
+      .eq("id", estudiante.id)
+      .select();
+    if (error) throw error;
+    if (data.length === 0) {
+      throw new Error("No se encontró el estudiante. Puede que ya no exista; recarga la página.");
+    }
+
+    mostrarAviso(
+      estudiante.nombre_completo + (activo ? " fue reactivado." : " fue desactivado."),
+      "exito"
+    );
+    await cargarEstudiantes();
+  } catch (error) {
+    mostrarAviso(describirError(error), "error");
+  } finally {
+    ocultarCargando();
+  }
+}
+
+// Pide confirmación y, si la persona acepta, desactiva al estudiante.
+async function desactivarEstudiante(estudiante) {
+  const confirmado = await pedirConfirmacion({
+    titulo: "¿Desactivar estudiante?",
+    mensaje: estudiante.nombre_completo + " dejará de aparecer en la lista, en la asistencia y en el dashboard. " +
+      "Podrás reactivarlo marcando «Mostrar inactivos».",
+    textoConfirmar: "Desactivar",
+  });
+
+  if (confirmado) {
+    await cambiarEstadoActivo(estudiante, false);
+  }
+}
+
+// Reactiva a un estudiante inactivo (no pide confirmación porque se puede deshacer).
+async function reactivarEstudiante(estudiante) {
+  await cambiarEstadoActivo(estudiante, true);
+}
+
+// Se ejecuta al abrir la vista Estudiantes: carga las disciplinas y luego los estudiantes.
+async function abrirVistaEstudiantes() {
+  cerrarFormularioEstudiante();
+
+  const disciplinasCargadas = await cargarDisciplinas();
+  if (disciplinasCargadas) {
+    await cargarEstudiantes();
+  }
+}
+
+
+/* =====================================================================
+   6. NAVEGACIÓN
    ===================================================================== */
 
 // Muestra la vista pedida y oculta las demás.
-// También marca como activo el botón del menú que le corresponde.
+// También marca como activo el botón del menú que le corresponde
+// y carga los datos que esa vista necesita.
 function mostrarVista(nombreVista) {
   document.querySelectorAll("[data-vista]").forEach((seccion) => {
     const esLaPedida = seccion.dataset.vista === nombreVista;
@@ -286,21 +987,45 @@ function mostrarVista(nombreVista) {
       boton.removeAttribute("aria-current");
     }
   });
+
+  if (nombreVista === "estudiantes") {
+    abrirVistaEstudiantes();
+  } else if (nombreVista === "disciplinas") {
+    cargarDisciplinas();
+  }
 }
 
 
 /* =====================================================================
-   5. INICIO
+   7. INICIO
    ===================================================================== */
 
 // Conecta cada botón y formulario con la función que debe ejecutar.
 function conectarEventos() {
+  // Login y sesión
   elementos.formularioLogin.addEventListener("submit", iniciarSesion);
   elementos.botonCerrarSesion.addEventListener("click", cerrarSesion);
 
+  // Menú de navegación
   document.querySelectorAll("[data-ir-a]").forEach((boton) => {
     boton.addEventListener("click", () => mostrarVista(boton.dataset.irA));
   });
+
+  // Disciplinas
+  elementos.formularioDisciplina.addEventListener("submit", agregarDisciplina);
+
+  // Estudiantes: formulario
+  elementos.botonNuevoEstudiante.addEventListener("click", () => abrirFormularioEstudiante());
+  elementos.botonCancelarEstudiante.addEventListener("click", cerrarFormularioEstudiante);
+  elementos.formularioEstudiante.addEventListener("submit", guardarEstudiante);
+  elementos.formularioEstudiante.addEventListener("input", quitarErrorDelCampoEditado);
+  elementos.formularioEstudiante.elements.edad.addEventListener("input", actualizarAyudaDeAcudiente);
+
+  // Estudiantes: buscador, filtros y botones de la tabla
+  elementos.campoBusqueda.addEventListener("input", dibujarTablaEstudiantes);
+  elementos.filtroDisciplina.addEventListener("change", dibujarTablaEstudiantes);
+  elementos.filtroInactivos.addEventListener("change", dibujarTablaEstudiantes);
+  elementos.cuerpoTablaEstudiantes.addEventListener("click", manejarClicEnTablaDeEstudiantes);
 }
 
 // Punto de entrada: prepara la página y decide si mostrar el login o la aplicación.
