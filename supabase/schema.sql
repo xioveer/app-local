@@ -149,6 +149,12 @@ drop policy if exists "Autenticados gestionan disciplinas" on public.disciplinas
 drop policy if exists "Autenticados gestionan estudiantes" on public.estudiantes;
 drop policy if exists "Autenticados gestionan asistencias" on public.asistencias;
 
+-- Si antes se ejecutó modo_sin_login.sql, también se eliminan sus políticas "anónimas":
+-- así, volver a ejecutar este archivo siempre deja la base en el estado SEGURO.
+drop policy if exists "Anónimos gestionan disciplinas" on public.disciplinas;
+drop policy if exists "Anónimos gestionan estudiantes" on public.estudiantes;
+drop policy if exists "Anónimos gestionan asistencias" on public.asistencias;
+
 -- using      → qué filas puede LEER / MODIFICAR / BORRAR
 -- with check → qué filas puede INSERTAR / dejar tras un UPDATE
 create policy "Autenticados gestionan disciplinas"
