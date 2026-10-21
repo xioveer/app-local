@@ -20,3 +20,15 @@ const SUPABASE_URL = "";
 
 // Clave pública (anon). Es segura en el frontend SOLO si RLS está activado.
 const SUPABASE_ANON_KEY = "";
+
+// ¿La aplicación pide iniciar sesión?   true = sí (lo normal y lo seguro)
+//
+// MODO SIN INICIO DE SESIÓN (temporal): pon  false  para entrar directo, sin login.
+// OJO: sin login la base de datos tiene que estar ABIERTA para el rol anónimo, y la
+// anon key es pública. Eso significa que CUALQUIER persona con la dirección de la
+// página puede ver, cambiar y borrar los datos (incluidos teléfonos de acudientes).
+// Úsalo solo en tu computador y con datos de prueba, y NO publiques la página así.
+//   Para activarlo:    pon false aquí + ejecuta supabase/modo_sin_login.sql
+//   Para desactivarlo: pon true aquí  + ejecuta supabase/modo_con_login.sql
+// Si esta línea no existe, la aplicación pide iniciar sesión (lo seguro).
+const REQUIERE_INICIO_DE_SESION = true;

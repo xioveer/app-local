@@ -68,6 +68,7 @@ function guardarReferenciasDelDOM() {
 
   // Login
   elementos.vistaLogin = document.getElementById("vista-login");
+  elementos.loginSubtitulo = document.getElementById("login-subtitulo");
   elementos.avisoConfiguracion = document.getElementById("aviso-configuracion");
   elementos.formularioLogin = document.getElementById("formulario-login");
   elementos.campoCorreo = document.getElementById("login-correo");
@@ -78,6 +79,7 @@ function guardarReferenciasDelDOM() {
   elementos.appPrincipal = document.getElementById("app-principal");
   elementos.usuarioCorreo = document.getElementById("usuario-correo");
   elementos.botonCerrarSesion = document.getElementById("boton-cerrar-sesion");
+  elementos.avisoModoSinLogin = document.getElementById("aviso-modo-sin-login");
 
   // Disciplinas
   elementos.formularioDisciplina = document.getElementById("formulario-disciplina");
@@ -152,11 +154,24 @@ function configuracionEsValida() {
   );
 }
 
+// Indica si la aplicación pide iniciar sesión. Solo NO la pide cuando config.js dice
+// exactamente REQUIERE_INICIO_DE_SESION = false (modo sin inicio de sesión, temporal).
+// Si la línea no existe o tiene cualquier otro valor, se pide iniciar sesión (lo seguro).
+// "typeof" evita un error cuando config.js no tiene esa línea.
+function requiereInicioDeSesion() {
+  const modoSinLogin = typeof REQUIERE_INICIO_DE_SESION !== "undefined" && REQUIERE_INICIO_DE_SESION === false;
+  return !modoSinLogin;
+}
+
 // Crea el cliente de Supabase con los datos de config.js.
+// Sin inicio de sesión no se guarda ni se usa ninguna sesión: todas las peticiones
+// van con el rol anónimo (y la base de datos decide qué le permite).
 function crearClienteSupabase() {
-  clienteSupabase = window.supabase.createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim(), {
-    auth: { storageKey: CLAVE_DE_SESION },
-  });
+  const opciones = requiereInicioDeSesion()
+    ? { auth: { storageKey: CLAVE_DE_SESION } }
+    : { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
+
+  clienteSupabase = window.supabase.createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim(), opciones);
 }
 
 
@@ -232,7 +247,10 @@ function describirError(error) {
     return "Tu sesión expiró. Cierra sesión y vuelve a entrar.";
   }
   if (codigo === "42501") {
-    return "No tienes permiso para hacer esto. Cierra sesión y vuelve a entrar.";
+    return requiereInicioDeSesion()
+      ? "No tienes permiso para hacer esto. Cierra sesión y vuelve a entrar."
+      : "La base de datos no permite el acceso sin iniciar sesión. Ejecuta supabase/modo_sin_login.sql " +
+        "en Supabase (o pon REQUIERE_INICIO_DE_SESION = true en config.js).";
   }
   if (codigo === "23505") {
     return "Ya existe un registro con ese valor.";
@@ -356,6 +374,20 @@ function mostrarProblemaDeConfiguracion(texto) {
   elementos.avisoConfiguracion.textContent = texto;
   elementos.avisoConfiguracion.classList.remove("hidden");
   elementos.botonLogin.disabled = true;
+
+  // En el modo sin inicio de sesión no hay nada que iniciar: solo se muestra el aviso.
+  if (!requiereInicioDeSesion()) {
+    elementos.formularioLogin.classList.add("hidden");
+    elementos.loginSubtitulo.textContent = "Configuración incompleta";
+  }
+}
+
+// Modo sin inicio de sesión: entra directo a la aplicación, sin pedir correo ni contraseña.
+// Se muestra el aviso permanente y se oculta el botón de cerrar sesión (no hay sesión).
+function entrarSinInicioDeSesion() {
+  elementos.avisoModoSinLogin.classList.remove("hidden");
+  elementos.botonCerrarSesion.classList.add("hidden");
+  mostrarAplicacion({ email: "Sin inicio de sesión" });
 }
 
 // Pregunta a Supabase si ya hay una sesión guardada en el navegador
@@ -1562,7 +1594,8 @@ function conectarEventos() {
   elementos.botonGuardarAsistencia.addEventListener("click", guardarAsistencia);
 }
 
-// Punto de entrada: prepara la página y decide si mostrar el login o la aplicación.
+// Punto de entrada: prepara la página y decide si mostrar el login o la aplicación
+// (o entrar directo, si config.js desactiva el inicio de sesión).
 async function iniciarAplicacion() {
   guardarReferenciasDelDOM();
   conectarEventos();
@@ -1584,6 +1617,12 @@ async function iniciarAplicacion() {
   }
 
   crearClienteSupabase();
+
+  if (!requiereInicioDeSesion()) {
+    entrarSinInicioDeSesion();
+    return;
+  }
+
   vigilarCierreDeSesion();
   await revisarSesion();
 }
