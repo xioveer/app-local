@@ -10,7 +10,7 @@
      4. DISCIPLINAS     → listar y agregar disciplinas
      5. ESTUDIANTES     → tabla, buscador, filtros, formulario (crear/editar),
                           desactivar y reactivar
-     6. ASISTENCIA      → fecha, interruptores presente/ausente y guardar (upsert)
+     6. ASISTENCIA      → consultar y guardar (upsert) + puente con la vista hecha en React
      7. DASHBOARD       → métricas: estudiantes, pagos y asistencia de hoy
      8. NAVEGACIÓN      → mostrar una vista y ocultar las demás
      9. INICIO          → arranque de la aplicación
@@ -31,6 +31,7 @@ const CLAVE_DE_SESION = "academia-sesion";
 
 // Datos que la aplicación mantiene en memoria mientras hay una sesión iniciada.
 // Se vacían al cerrar sesión (ver limpiarDatosDeLaSesion).
+// (La vista Asistencia, hecha con React, guarda sus propios datos dentro de su componente.)
 const estado = {
   vistaActual: "",             // nombre de la vista que se está mostrando ("dashboard", "asistencia"...)
   disciplinas: [],             // filas de la tabla "disciplinas"
@@ -39,16 +40,7 @@ const estado = {
   estudiantesCargados: false,
   idEstudianteEnEdicion: null, // null = el formulario está creando uno nuevo
 
-  dashboardCargado: false,     // true cuando las métricas se cargaron bien al menos una vez
-
-  // Asistencia
-  estudiantesActivos: [],      // estudiantes con activo = true (los que salen en la lista)
-  asistenciaGuardada: {},      // id del estudiante → true/false, solo los que ya tienen registro en la fecha
-  marcasDeAsistencia: {},      // id del estudiante → true (presente) / false (ausente): lo que muestran los interruptores
-  asistenciaCargada: false,    // true cuando la carga de la fecha terminó bien
-  asistenciaModificada: false, // true si se movió algún interruptor y todavía no se guardó
-  fechaDeAsistencia: "",       // fecha cargada (con ESTA fecha se guarda)
-  disciplinaDeAsistencia: ""   // filtro aplicado en la lista ("" = todas)
+  dashboardCargado: false      // true cuando las métricas se cargaron bien al menos una vez
 };
 
 // Aquí guardamos los elementos del HTML que usamos con frecuencia.
@@ -106,18 +98,6 @@ function guardarReferenciasDelDOM() {
   elementos.contenedorTablaEstudiantes = document.getElementById("contenedor-tabla-estudiantes");
   elementos.cuerpoTablaEstudiantes = document.getElementById("cuerpo-tabla-estudiantes");
   elementos.plantillaFilaEstudiante = document.getElementById("plantilla-fila-estudiante");
-
-  // Asistencia
-  elementos.campoFechaAsistencia = document.getElementById("campo-fecha-asistencia");
-  elementos.botonFechaHoy = document.getElementById("boton-fecha-hoy");
-  elementos.filtroDisciplinaAsistencia = document.getElementById("filtro-disciplina-asistencia");
-  elementos.mensajeSinAsistencia = document.getElementById("mensaje-sin-asistencia");
-  elementos.contenedorAsistencia = document.getElementById("contenedor-asistencia");
-  elementos.listaAsistencia = document.getElementById("lista-asistencia");
-  elementos.resumenAsistencia = document.getElementById("resumen-asistencia");
-  elementos.avisoSinGuardar = document.getElementById("aviso-sin-guardar");
-  elementos.botonGuardarAsistencia = document.getElementById("boton-guardar-asistencia");
-  elementos.plantillaFilaAsistencia = document.getElementById("plantilla-fila-asistencia");
 
   // Dashboard
   elementos.botonActualizarDashboard = document.getElementById("boton-actualizar-dashboard");
@@ -343,8 +323,7 @@ function limpiarDatosDeLaSesion() {
   elementos.filtroInactivos.checked = false;
   elementos.formularioDisciplina.reset();
   cerrarFormularioEstudiante();
-  limpiarAsistenciaEnPantalla();
-  elementos.campoFechaAsistencia.value = "";
+  cerrarVistaAsistencia();
   limpiarDashboardEnPantalla();
 
   llenarSelectsDeDisciplinas(); // sin disciplinas en "estado", los selects quedan vacíos
@@ -512,11 +491,11 @@ function llenarSelectDeDisciplinas(select, textoDeLaPrimeraOpcion) {
   }
 }
 
-// Actualiza los selects de disciplinas: el filtro de la tabla, el del formulario y el de asistencia.
+// Actualiza los selects de disciplinas: el filtro de la tabla y el del formulario.
+// (El filtro de la vista Asistencia lo dibuja React.)
 function llenarSelectsDeDisciplinas() {
   llenarSelectDeDisciplinas(elementos.filtroDisciplina, "Todas las disciplinas");
   llenarSelectDeDisciplinas(elementos.campoDisciplinaEstudiante, "Selecciona una disciplina");
-  llenarSelectDeDisciplinas(elementos.filtroDisciplinaAsistencia, "Todas las disciplinas");
 }
 
 // Dibuja la lista de disciplinas de la vista "Disciplinas".
@@ -1072,9 +1051,13 @@ async function abrirVistaEstudiantes() {
 
 /* =====================================================================
    6. ASISTENCIA
+   La pantalla (fecha, filtro, interruptores y botón de guardar) está hecha con REACT
+   en el archivo asistencia-react.js. Aquí solo quedan:
+     · las funciones que hablan con Supabase (consultar y guardar), y
+     · el "puente" con React: abrir la vista, cerrarla y saber si hay cambios sin guardar.
    ===================================================================== */
 
-// Fecha más antigua que se acepta (debe coincidir con el atributo min del campo en index.html).
+// Fecha más antigua que se acepta (debe coincidir con el atributo min del campo de fecha).
 const FECHA_MINIMA_DE_ASISTENCIA = "2000-01-01";
 
 // Revisa la fecha elegida. Devuelve un texto con el problema, o "" si está bien.
@@ -1092,140 +1075,46 @@ function validarFechaDeAsistencia(fecha) {
   return "";
 }
 
-// Devuelve los estudiantes que se ven en la lista: los activos que cumplen el filtro de disciplina.
-function obtenerEstudiantesDeAsistencia() {
-  return estado.estudiantesActivos.filter((estudiante) => {
-    return estado.disciplinaDeAsistencia === "" ||
-      String(estudiante.disciplina_id) === estado.disciplinaDeAsistencia;
-  });
-}
-
-// Pone los interruptores como estaban guardados en la base de datos.
-// Los estudiantes que todavía no tienen registro en esa fecha empiezan como "presente".
-function reiniciarMarcasDeAsistencia() {
-  estado.marcasDeAsistencia = {};
-  estado.estudiantesActivos.forEach((estudiante) => {
-    const guardada = estado.asistenciaGuardada[estudiante.id];
-    estado.marcasDeAsistencia[estudiante.id] = guardada === undefined ? true : guardada;
-  });
-  estado.asistenciaModificada = false;
-}
-
-// Vacía todo lo relacionado con la asistencia (datos en memoria y lista en pantalla).
-function limpiarAsistenciaEnPantalla() {
-  estado.estudiantesActivos = [];
-  estado.asistenciaGuardada = {};
-  estado.marcasDeAsistencia = {};
-  estado.asistenciaCargada = false;
-  estado.asistenciaModificada = false;
-  estado.fechaDeAsistencia = "";
-  estado.disciplinaDeAsistencia = "";
-  elementos.filtroDisciplinaAsistencia.value = "";
-  dibujarListaDeAsistencia();
-}
-
-// Cambia el texto y el color de "Presente / Ausente" junto al interruptor.
-function pintarEstadoDelInterruptor(fila, presente) {
-  const etiqueta = fila.querySelector('[data-texto="estado"]');
-  etiqueta.textContent = presente ? "Presente" : "Ausente";
-  etiqueta.className = "w-16 text-sm font-medium " + (presente ? "text-emerald-700" : "text-slate-500");
-}
-
-// Crea la fila de un estudiante, copiando la plantilla del HTML.
-function crearFilaDeAsistencia(estudiante) {
-  const fila = elementos.plantillaFilaAsistencia.content.firstElementChild.cloneNode(true);
-
-  const disciplina = estudiante.disciplinas ? estudiante.disciplinas.nombre : null;
-  const detalle = [disciplina, estudiante.categoria].filter(Boolean).join(" · ");
-
-  ponerTextoEnFila(fila, "nombre", estudiante.nombre_completo);
-  ponerTextoEnFila(fila, "detalle", detalle || "—");
-
-  // "Sin registrar" aparece mientras ese estudiante no tenga registro guardado en esta fecha.
-  const tieneRegistro = estado.asistenciaGuardada[estudiante.id] !== undefined;
-  fila.querySelector('[data-texto="sin-registro"]').classList.toggle("hidden", tieneRegistro);
-
-  const interruptor = fila.querySelector('[data-campo="interruptor"]');
-  interruptor.dataset.id = estudiante.id;
-  interruptor.checked = estado.marcasDeAsistencia[estudiante.id];
-  interruptor.setAttribute("aria-label", "Asistencia de " + estudiante.nombre_completo);
-  pintarEstadoDelInterruptor(fila, interruptor.checked);
-
-  return fila;
-}
-
-// Actualiza el resumen ("Presentes: 8 · Ausentes: 1 · Total: 9") y el aviso de cambios sin guardar.
-function actualizarResumenDeAsistencia() {
-  const lista = obtenerEstudiantesDeAsistencia();
-  const presentes = lista.filter((estudiante) => estado.marcasDeAsistencia[estudiante.id]).length;
-
-  elementos.resumenAsistencia.textContent =
-    "Presentes: " + presentes + " · Ausentes: " + (lista.length - presentes) + " · Total: " + lista.length;
-  elementos.avisoSinGuardar.classList.toggle("hidden", !estado.asistenciaModificada);
-}
-
-// Vuelve a dibujar la lista de asistencia según el filtro de disciplina y las marcas actuales.
-function dibujarListaDeAsistencia() {
-  const lista = obtenerEstudiantesDeAsistencia();
-
-  elementos.listaAsistencia.replaceChildren();
-  lista.forEach((estudiante) => {
-    elementos.listaAsistencia.appendChild(crearFilaDeAsistencia(estudiante));
-  });
-
-  // El mensaje de "no hay estudiantes" solo se muestra si la carga salió bien.
-  const hayFilas = lista.length > 0;
-  elementos.contenedorAsistencia.classList.toggle("hidden", !hayFilas);
-  elementos.mensajeSinAsistencia.classList.toggle("hidden", !(estado.asistenciaCargada && !hayFilas));
-  elementos.mensajeSinAsistencia.textContent = estado.estudiantesActivos.length === 0
-    ? "No hay estudiantes activos. Agrégalos en la vista Estudiantes."
-    : "No hay estudiantes activos en esta disciplina.";
-
-  actualizarResumenDeAsistencia();
-}
-
 // Pide a Supabase los estudiantes activos y la asistencia ya guardada en esa fecha.
-// Solo si todo sale bien se cambia la fecha cargada. Devuelve true o false.
-async function cargarAsistencia(fecha) {
-  mostrarCargando("Cargando asistencia...");
-  try {
-    // .eq("activo", true): los estudiantes inactivos no aparecen en la asistencia.
-    const respuestaEstudiantes = await clienteSupabase
-      .from("estudiantes")
-      .select("id, nombre_completo, categoria, disciplina_id, disciplinas(nombre)")
-      .eq("activo", true)
-      .order("nombre_completo", { ascending: true });
-    if (respuestaEstudiantes.error) throw respuestaEstudiantes.error;
+// Devuelve { estudiantes, guardada }: "guardada" es un objeto id del estudiante → true/false
+// con los registros que ya existen. Si algo falla, lanza el error (quien la llama muestra el aviso).
+async function consultarAsistenciaDeUnaFecha(fecha) {
+  // .eq("activo", true): los estudiantes inactivos no aparecen en la asistencia.
+  const respuestaEstudiantes = await clienteSupabase
+    .from("estudiantes")
+    .select("id, nombre_completo, categoria, disciplina_id, disciplinas(nombre)")
+    .eq("activo", true)
+    .order("nombre_completo", { ascending: true });
+  if (respuestaEstudiantes.error) throw respuestaEstudiantes.error;
 
-    const respuestaAsistencias = await clienteSupabase
-      .from("asistencias")
-      .select("estudiante_id, asistio")
-      .eq("fecha", fecha);
-    if (respuestaAsistencias.error) throw respuestaAsistencias.error;
+  const respuestaAsistencias = await clienteSupabase
+    .from("asistencias")
+    .select("estudiante_id, asistio")
+    .eq("fecha", fecha);
+  if (respuestaAsistencias.error) throw respuestaAsistencias.error;
 
-    estado.estudiantesActivos = respuestaEstudiantes.data;
-    estado.asistenciaGuardada = {};
-    respuestaAsistencias.data.forEach((registro) => {
-      estado.asistenciaGuardada[registro.estudiante_id] = registro.asistio;
-    });
-    estado.fechaDeAsistencia = fecha;
-    estado.asistenciaCargada = true;
+  const guardada = {};
+  respuestaAsistencias.data.forEach((registro) => {
+    guardada[registro.estudiante_id] = registro.asistio;
+  });
 
-    reiniciarMarcasDeAsistencia();
-    dibujarListaDeAsistencia();
-    return true;
-  } catch (error) {
-    mostrarAviso("No se pudo cargar la asistencia. " + describirError(error), "error");
-    return false;
-  } finally {
-    ocultarCargando();
-  }
+  return { estudiantes: respuestaEstudiantes.data, guardada: guardada };
 }
 
-// Si hay interruptores movidos sin guardar, pregunta si se pueden descartar.
+// Guarda los registros de asistencia con UPSERT: si ya existía un registro de ese estudiante
+// en esa fecha lo actualiza; si no, lo crea. Funciona gracias a la restricción
+// UNIQUE (estudiante_id, fecha) de la base de datos. Si algo falla, lanza el error.
+async function guardarRegistrosDeAsistencia(registros) {
+  const { error } = await clienteSupabase
+    .from("asistencias")
+    .upsert(registros, { onConflict: "estudiante_id,fecha" });
+  if (error) throw error;
+}
+
+// Si hay cambios sin guardar (hayCambios = true), pregunta si se pueden descartar.
 // Devuelve true si se puede continuar.
-async function confirmarDescartarCambios() {
-  if (!estado.asistenciaModificada) {
+async function confirmarDescartarCambios(hayCambios) {
+  if (!hayCambios) {
     return true;
   }
   return await pedirConfirmacion({
@@ -1235,130 +1124,29 @@ async function confirmarDescartarCambios() {
   });
 }
 
-// Se ejecuta al cambiar la fecha: la valida, pide confirmación si hay cambios sin guardar
-// y carga la asistencia de esa fecha. Si algo falla, el campo vuelve a la fecha anterior.
-async function cambiarFechaDeAsistencia() {
-  const campo = elementos.campoFechaAsistencia;
-  const nuevaFecha = campo.value;
 
-  if (nuevaFecha === estado.fechaDeAsistencia) {
+/* ---------- El "puente" con React ---------- */
+// asistencia-react.js crea window.VistaAsistencia solo si React se pudo cargar.
+
+// Muestra la vista Asistencia: React la dibuja desde cero, con la fecha de hoy.
+function abrirVistaAsistencia() {
+  if (!window.VistaAsistencia) {
+    mostrarAviso("No se pudo cargar React, que necesita la vista Asistencia. Revisa tu conexión a Internet y recarga la página.", "error");
     return;
   }
+  window.VistaAsistencia.abrir();
+}
 
-  const problema = validarFechaDeAsistencia(nuevaFecha);
-  if (problema !== "") {
-    mostrarAviso(problema, "error");
-    campo.value = estado.fechaDeAsistencia;
-    return;
-  }
-
-  if (!(await confirmarDescartarCambios())) {
-    campo.value = estado.fechaDeAsistencia;
-    return;
-  }
-
-  // Si la primera carga había fallado, todavía faltan las disciplinas del filtro: se piden otra vez.
-  if (!estado.asistenciaCargada && !(await cargarDisciplinas())) {
-    campo.value = estado.fechaDeAsistencia;
-    return;
-  }
-
-  const cargada = await cargarAsistencia(nuevaFecha);
-  if (!cargada) {
-    campo.value = estado.fechaDeAsistencia;
+// Quita la vista Asistencia de la pantalla y borra sus datos (se usa al cerrar sesión).
+function cerrarVistaAsistencia() {
+  if (window.VistaAsistencia) {
+    window.VistaAsistencia.cerrar();
   }
 }
 
-// Se ejecuta al elegir otra disciplina en el filtro de la lista de asistencia.
-async function cambiarDisciplinaDeAsistencia() {
-  const select = elementos.filtroDisciplinaAsistencia;
-  const nuevaDisciplina = select.value;
-
-  if (nuevaDisciplina === estado.disciplinaDeAsistencia) {
-    return;
-  }
-
-  if (!(await confirmarDescartarCambios())) {
-    select.value = estado.disciplinaDeAsistencia;
-    return;
-  }
-
-  estado.disciplinaDeAsistencia = nuevaDisciplina;
-  reiniciarMarcasDeAsistencia();
-  dibujarListaDeAsistencia();
-}
-
-// Se ejecuta cuando se mueve un interruptor de la lista.
-function manejarCambioDeInterruptor(evento) {
-  const interruptor = evento.target;
-  if (!interruptor.matches('input[data-campo="interruptor"]')) {
-    return;
-  }
-
-  estado.marcasDeAsistencia[interruptor.dataset.id] = interruptor.checked;
-  estado.asistenciaModificada = true;
-  pintarEstadoDelInterruptor(interruptor.closest("li"), interruptor.checked);
-  actualizarResumenDeAsistencia();
-}
-
-// Guarda la asistencia de los estudiantes que se ven en la lista, con UPSERT:
-// si ya existía un registro de ese estudiante en esa fecha lo actualiza; si no, lo crea.
-// Funciona gracias a la restricción UNIQUE (estudiante_id, fecha) de la base de datos.
-async function guardarAsistencia() {
-  // Se usa la fecha CARGADA (no lo que haya escrito en el campo), para que las marcas
-  // de un día nunca se guarden bajo la fecha de otro.
-  const fecha = estado.fechaDeAsistencia;
-
-  const problema = validarFechaDeAsistencia(fecha);
-  if (problema !== "") {
-    mostrarAviso(problema, "error");
-    return;
-  }
-
-  const estudiantes = obtenerEstudiantesDeAsistencia();
-  if (estudiantes.length === 0) {
-    mostrarAviso("No hay estudiantes en la lista para guardar.", "error");
-    return;
-  }
-
-  const registros = estudiantes.map((estudiante) => ({
-    estudiante_id: estudiante.id,
-    fecha: fecha,
-    asistio: estado.marcasDeAsistencia[estudiante.id],
-  }));
-
-  mostrarCargando("Guardando asistencia...");
-  try {
-    const { error } = await clienteSupabase
-      .from("asistencias")
-      .upsert(registros, { onConflict: "estudiante_id,fecha" });
-    if (error) throw error;
-
-    const presentes = registros.filter((registro) => registro.asistio).length;
-    mostrarAviso(
-      "Asistencia del " + formatearFecha(fecha) + " guardada: " +
-        presentes + " presentes y " + (registros.length - presentes) + " ausentes.",
-      "exito"
-    );
-    await cargarAsistencia(fecha); // vuelve a leer lo guardado
-  } catch (error) {
-    mostrarAviso(describirError(error), "error");
-  } finally {
-    ocultarCargando();
-  }
-}
-
-// Se ejecuta al abrir la vista Asistencia: empieza con la fecha de hoy y todos los estudiantes.
-async function abrirVistaAsistencia() {
-  const hoy = fechaDeHoy();
-  limpiarAsistenciaEnPantalla();
-  elementos.campoFechaAsistencia.max = hoy; // el calendario no deja elegir días futuros
-  elementos.campoFechaAsistencia.value = hoy;
-
-  const disciplinasCargadas = await cargarDisciplinas(); // llena el filtro de disciplinas
-  if (disciplinasCargadas) {
-    await cargarAsistencia(hoy);
-  }
+// Indica si en la vista Asistencia hay interruptores movidos que todavía no se guardaron.
+function asistenciaTieneCambiosSinGuardar() {
+  return Boolean(window.VistaAsistencia) && window.VistaAsistencia.tieneCambiosSinGuardar();
 }
 
 
@@ -1541,7 +1329,7 @@ function mostrarVista(nombreVista) {
 // primero pregunta si se pueden descartar (también cuando pulsas el botón de la misma vista,
 // porque eso vuelve a cargarla y borraría las marcas).
 async function navegarAVista(nombreVista) {
-  if (estado.vistaActual === "asistencia" && !(await confirmarDescartarCambios())) {
+  if (estado.vistaActual === "asistencia" && !(await confirmarDescartarCambios(asistenciaTieneCambiosSinGuardar()))) {
     return;
   }
   mostrarVista(nombreVista);
@@ -1581,17 +1369,6 @@ function conectarEventos() {
 
   // Dashboard
   elementos.botonActualizarDashboard.addEventListener("click", actualizarDashboard);
-
-  // Asistencia
-  elementos.campoFechaAsistencia.addEventListener("change", cambiarFechaDeAsistencia);
-  elementos.botonFechaHoy.addEventListener("click", () => {
-    elementos.campoFechaAsistencia.max = fechaDeHoy();
-    elementos.campoFechaAsistencia.value = fechaDeHoy();
-    cambiarFechaDeAsistencia();
-  });
-  elementos.filtroDisciplinaAsistencia.addEventListener("change", cambiarDisciplinaDeAsistencia);
-  elementos.listaAsistencia.addEventListener("change", manejarCambioDeInterruptor);
-  elementos.botonGuardarAsistencia.addEventListener("click", guardarAsistencia);
 }
 
 // Punto de entrada: prepara la página y decide si mostrar el login o la aplicación
