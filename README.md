@@ -2,7 +2,7 @@
 
 Aplicación web para administrar una **academia formativa** de cualquier tipo: deportes, música, danza, artes, etc. Permite llevar el registro de estudiantes, el estado de sus pagos y la asistencia diaria, con un panel de resumen.
 
-Es un proyecto escolar hecho con herramientas simples: **HTML, Tailwind CSS y JavaScript** en el navegador, y **Supabase** como base de datos. No usa frameworks (React, Vue…), ni npm, ni compiladores: se abre con un servidor estático y listo.
+Es un proyecto escolar hecho con herramientas simples: **HTML, Tailwind CSS y JavaScript** en el navegador, y **Supabase** como base de datos. Casi todo está escrito en JavaScript "vainilla" (sin frameworks). La excepción es la **vista de Asistencia, hecha con React**, para ver en la práctica dónde ayuda un framework y dónde no hace falta (ver [sección 9.4](#94-dónde-usamos-react-y-qué-mejora)). Todo se carga por CDN: no usa npm ni compiladores, y se abre con un servidor estático.
 
 ## Contenido
 
@@ -33,6 +33,7 @@ Después de iniciar sesión con correo y contraseña, la aplicación tiene cuatr
 Otras características:
 
 - **Seguridad:** sin sesión iniciada no se ve nada más que el login. La base de datos también rechaza a quien no haya iniciado sesión (ver [sección 6](#6-seguridad-por-qué-la-anon-key-puede-estar-en-el-frontend)).
+- **Modo sin inicio de sesión (opcional y temporal):** un interruptor en `config.js` permite entrar directo, sin login, para ensayar en tu computador. **Abre la base de datos a cualquiera**, así que no es para publicar ni para datos reales (ver el [Paso 8](#paso-8-opcional-y-temporal-entrar-sin-iniciar-sesión)).
 - **Cuidado con los datos:** los estudiantes no se borran (se desactivan), los formularios se validan antes de enviar, y la base de datos vuelve a validar los datos importantes.
 - **Avisos claros:** los errores y confirmaciones aparecen como mensajes en pantalla (en español), nunca solo en la consola.
 - **Diseño responsive:** funciona en computador y en celular.
@@ -43,9 +44,13 @@ Otras características:
 |---|---|---|
 | HTML5 | Estructura de la página (una sola página con varias "vistas") | `index.html` |
 | Tailwind CSS 3 | Estilos y diseño responsive | CDN: `https://cdn.tailwindcss.com` |
-| JavaScript (vainilla) | Toda la lógica: DOM, `async/await`, validaciones | `app.js` |
+| JavaScript (vainilla) | Casi toda la lógica: DOM, `async/await`, validaciones | `app.js` |
+| React 18.3.1 + ReactDOM | La vista de **Asistencia** (componentes y estado) | CDN (jsDelivr): `react@18.3.1` y `react-dom@18.3.1`, versión para `<script>` (sin compilar) |
+| htm 3.1.1 | Permite escribir HTML dentro de JavaScript (parecido a JSX) sin compilador | CDN (jsDelivr): `htm@3.1.1` |
 | Supabase (PostgreSQL + Auth) | Base de datos, inicio de sesión y reglas de seguridad (RLS) | SDK `@supabase/supabase-js` **2.117.2** por CDN (jsDelivr) |
 | Live Server (VS Code) | Servidor estático para abrir el proyecto en tu computador | Extensión de VS Code |
+
+Se usa **React 18** porque React 19 ya no ofrece una versión para cargar con una etiqueta `<script>` (necesitaría npm y un compilador).
 
 Requisito: un navegador actual (Chrome, Edge, Firefox o Safari recientes) y conexión a Internet, porque las librerías y la base de datos están en Internet.
 
@@ -53,18 +58,24 @@ Requisito: un navegador actual (Chrome, Edge, Firefox o Safari recientes) y cone
 
 ```
 app-local/
-├── index.html          Estructura de la página: login, menú, las 4 vistas, el diálogo
-│                       de confirmación y las plantillas de filas. Aquí van los estilos Tailwind.
-├── app.js              Toda la lógica, dividida en secciones comentadas:
-│                       configuración, utilidades, autenticación, disciplinas, estudiantes,
-│                       asistencia, dashboard, navegación e inicio.
-├── config.example.js   Plantilla con SUPABASE_URL y SUPABASE_ANON_KEY vacías.
-├── config.js           TU configuración real (la creas tú; NO se sube a GitHub).
-├── .gitignore          Le dice a git que ignore config.js.
-├── README.md           Este archivo.
+├── index.html            Estructura de la página: login, menú, las 4 vistas, el diálogo de
+│                         confirmación y las plantillas de filas. Aquí van los estilos Tailwind.
+│                         La vista Asistencia es solo un "punto de montaje" para React.
+├── app.js                La lógica de toda la aplicación, dividida en secciones comentadas:
+│                         configuración, utilidades, autenticación, disciplinas, estudiantes,
+│                         asistencia (consultar/guardar y puente con React), dashboard,
+│                         navegación e inicio.
+├── asistencia-react.js   La vista de Asistencia hecha con React: sus componentes y su estado.
+├── config.example.js     Plantilla con SUPABASE_URL, SUPABASE_ANON_KEY y REQUIERE_INICIO_DE_SESION.
+├── config.js             TU configuración real (la creas tú; NO se sube a GitHub).
+├── .gitignore            Le dice a git que ignore config.js.
+├── README.md             Este archivo.
 └── supabase/
-    ├── schema.sql      Crea las tablas, restricciones, índices y políticas de seguridad (RLS).
-    └── seed.sql        Datos de prueba: 3 disciplinas y 10 estudiantes ficticios.
+    ├── schema.sql        Crea las tablas, restricciones, índices y políticas de seguridad (RLS).
+    │                     Siempre deja la base en el estado SEGURO.
+    ├── seed.sql          Datos de prueba: 3 disciplinas y 10 estudiantes ficticios.
+    ├── modo_sin_login.sql  (opcional, temporal) ABRE la base al rol anónimo para usar la app sin login.
+    └── modo_con_login.sql  Vuelve a CERRAR la base: solo entra quien inicia sesión.
 ```
 
 ## 4. Instalación paso a paso
@@ -122,7 +133,10 @@ Para comprobar que todo quedó bien, abre **Table Editor**: deben aparecer las t
 ```js
 const SUPABASE_URL = "https://TU-PROYECTO.supabase.co";
 const SUPABASE_ANON_KEY = "TU_CLAVE_ANON";
+const REQUIERE_INICIO_DE_SESION = true;
 ```
+
+La tercera línea la deja `config.example.js` en `true` (lo normal y lo seguro: la aplicación pide iniciar sesión). Solo se cambia en el [Paso 8](#paso-8-opcional-y-temporal-entrar-sin-iniciar-sesión), que es opcional.
 
 > **Nunca uses la clave `service_role` ni la `secret`.** Esas saltan todas las reglas de seguridad y jamás deben estar en el navegador.
 
@@ -136,11 +150,30 @@ const SUPABASE_ANON_KEY = "TU_CLAVE_ANON";
 
 Si no usas VS Code, también sirve cualquier servidor estático. Por ejemplo, con Python instalado, desde la carpeta del proyecto: `python -m http.server 5500` y abre `http://localhost:5500`.
 
+### Paso 8 (opcional y temporal). Entrar sin iniciar sesión
+
+> ⚠️ **Lee esto antes de activarlo.** Una aplicación de Supabase sin login solo funciona si la base de datos acepta peticiones **anónimas**, y la *anon key* es **pública**. Mientras este modo esté activo, **cualquier persona que conozca la dirección de tu proyecto de Supabase puede ver, cambiar y borrar todos los datos**, incluidos los nombres, las edades y los teléfonos de los acudientes. Úsalo **solo temporalmente, en tu computador y con datos de prueba**. **No publiques** la aplicación con este modo activo.
+
+Para **activarlo**:
+
+1. En el **SQL Editor** de Supabase, ejecuta `supabase/modo_sin_login.sql` (abre la base al rol anónimo).
+2. En tu `config.js` cambia la tercera línea a `const REQUIERE_INICIO_DE_SESION = false;` (exactamente `false`, sin comillas).
+3. Recarga la aplicación: entra directo al Dashboard, sin pedir correo ni contraseña.
+
+Mientras está activo, la aplicación te lo recuerda: muestra una franja amarilla permanente («Modo sin inicio de sesión…»), el encabezado dice *Sin inicio de sesión* y no hay botón de cerrar sesión.
+
+Para **volver a lo seguro**:
+
+1. En el SQL Editor ejecuta `supabase/modo_con_login.sql` (vuelve a cerrar la base).
+2. En `config.js` pon `const REQUIERE_INICIO_DE_SESION = true;`.
+
+Ambos scripts se pueden ejecutar varias veces y **no borran datos**. Volver a ejecutar `schema.sql` completo también deja la base cerrada. Si olvidas ejecutar el SQL, la aplicación te lo dice con un mensaje claro en vez de fallar. Y si falta la línea `REQUIERE_INICIO_DE_SESION` (por ejemplo, en un `config.js` antiguo), o tiene cualquier valor que no sea `false`, **la aplicación sigue pidiendo iniciar sesión**.
+
 ## 5. Prueba rápida: ¿todo funciona?
 
 Con los datos de `seed.sql` puedes recorrer esta lista. Cada paso dice qué debería pasar.
 
-1. **Sin sesión:** abre la aplicación en una ventana de incógnito. Solo debe verse el login.
+1. **Sin sesión** (modo normal, con login): abre la aplicación en una ventana de incógnito. Solo debe verse el login.
 2. **Login:** prueba una contraseña incorrecta (debe salir un aviso rojo) y luego la correcta (entras al Dashboard).
 3. **Dashboard:** debe mostrar **9 estudiantes activos · 5 al día · 2 pendientes · 2 vencidos**. Como todavía no hay asistencia de hoy, dice *Aún no se ha tomado asistencia hoy* y *Sin registrar: 9*.
 4. **Estudiantes:**
@@ -170,6 +203,7 @@ Con los datos de `seed.sql` puedes recorrer esta lista. Cada paso dice qué debe
 8. **Guardar dos veces el mismo día:** cambia un interruptor y vuelve a guardar. En el **Table Editor** de Supabase, la tabla `asistencias` no debe duplicar filas (hay un solo registro por estudiante y día).
 9. **Cambios sin guardar:** mueve un interruptor sin guardar y pulsa otro botón del menú. Debe preguntar *¿Descartar cambios?*.
 10. **Cerrar sesión:** pulsa **Cerrar sesión** y comprueba que vuelves al login y que ya no queda ningún dato en pantalla. Al recargar la página sigues en el login.
+11. **Solo si activaste el modo sin inicio de sesión ([Paso 8](#paso-8-opcional-y-temporal-entrar-sin-iniciar-sesión)):** la aplicación debe abrir directo en el Dashboard, con la franja amarilla y sin botón de cerrar sesión. Si en cambio sale el mensaje *«La base de datos no permite el acceso sin iniciar sesión…»*, falta ejecutar `modo_sin_login.sql`.
 
 Para **volver a dejar los datos de prueba como al inicio** (borra todo, incluida la asistencia, y los vuelve a crear), ejecuta esto en el SQL Editor y después `seed.sql` otra vez:
 
@@ -206,10 +240,26 @@ truncate public.asistencias, public.estudiantes, public.disciplinas restart iden
 | `service_role` / `secret` | **Jamás** | Todo: ignora RLS. |
 | Contraseña del administrador | Solo la sabe la persona | Con ella se inicia sesión y se obtiene acceso a los datos. |
 
+### Qué cambia con el modo sin inicio de sesión
+
+El [Paso 8](#paso-8-opcional-y-temporal-entrar-sin-iniciar-sesión) permite entrar sin login. No es un detalle de la pantalla: **cambia quién puede tocar los datos**.
+
+| | **Modo normal** (con login) | **Modo sin inicio de sesión** |
+|---|---|---|
+| ¿Quién puede ver y cambiar los datos? | Solo quien inicia sesión (el administrador) | **Cualquier persona** con la dirección de tu proyecto y la *anon key* (que es pública) |
+| Rol que usa la base de datos | `authenticated` | `anon` (anónimo) |
+| Políticas RLS | Solo para `authenticated` | Para `authenticated` **y** `anon` (las agrega `modo_sin_login.sql`) |
+| ¿Importa desactivar los registros públicos? | **Sí, es clave** | No (no hace falta cuenta para entrar) |
+| ¿Se puede publicar la página? | Sí | **No** |
+| ¿Se pueden usar datos reales? | Sí | **No** (solo datos de prueba) |
+| Para cambiar de modo | — | `modo_con_login.sql` + `REQUIERE_INICIO_DE_SESION = true` |
+
+El proyecto trae varias protecciones contra un descuido: lo seguro es el valor por defecto (solo el valor exacto `false` quita el login), la franja amarilla recuerda el riesgo en todo momento, `schema.sql` siempre deja la base cerrada, y el modo no se activa solo: hacen falta **dos** acciones explícitas (el SQL y el cambio en `config.js`). Lo que ninguna protección puede evitar es que publiques tu `config.js` con `false` y la base abierta: por eso el [apartado de publicación](#8-publicar-gratis-en-github-pages-o-netlify) lo advierte.
+
 **Otras medidas del proyecto:**
 
-- Los textos de los usuarios (nombres, categorías…) se muestran con `textContent` y plantillas `<template>`; el código **no usa `innerHTML`**, así que un nombre como `<img src=x onerror=...>` se ve como texto y no se ejecuta.
-- Al cerrar sesión se borra la sesión del navegador **siempre**, incluso sin Internet, y se vacían los datos de la pantalla (pensado para computadores compartidos).
+- Los textos de los usuarios (nombres, categorías…) nunca se interpretan como HTML: en JavaScript vainilla se ponen con `textContent` y plantillas `<template>`, y React escapa por defecto todo lo que se escribe entre llaves (`${nombre}`). El código **no usa `innerHTML` ni `dangerouslySetInnerHTML`**, así que un nombre como `<img src=x onerror=...>` se ve como texto y no se ejecuta.
+- Al cerrar sesión se borra la sesión del navegador **siempre**, incluso sin Internet, y se vacían los datos de la pantalla, también los de la vista hecha con React (pensado para computadores compartidos).
 - `config.js` no se sube al repositorio y no hay claves escritas en el código.
 
 ## 7. Solución de problemas
@@ -225,6 +275,10 @@ truncate public.asistencias, public.estudiantes, public.disciplinas restart iden
 | *«No tienes permiso para hacer esto»* o las listas salen vacías aunque hay datos | No se ejecutó `schema.sql`, la sesión caducó o hay un problema con las políticas | Cierra sesión y entra de nuevo. Vuelve a ejecutar `schema.sql` completo. |
 | *«Tu sesión expiró»* | Pasó mucho tiempo con la página abierta | Cierra sesión y vuelve a entrar. |
 | Al ejecutar `schema.sql`: `check constraint "estudiantes_acudiente_menores" … is violated by some row` | Ya hay menores guardados sin nombre o teléfono de acudiente | Encuéntralos con la consulta de abajo, corrígelos y ejecuta de nuevo. |
+| *«La base de datos no permite el acceso sin iniciar sesión…»* | Pusiste `REQUIERE_INICIO_DE_SESION = false` pero no ejecutaste `modo_sin_login.sql` | Ejecútalo (con las advertencias del [Paso 8](#paso-8-opcional-y-temporal-entrar-sin-iniciar-sesión)) o vuelve a poner `true`. |
+| Puse `REQUIERE_INICIO_DE_SESION = false` y la aplicación sigue pidiendo login | El valor debe ser exactamente `false` (sin comillas) y estar en `config.js` (no en el ejemplo); si no, se pide login a propósito | Revisa la línea y recarga sin caché (`Ctrl + F5`). |
+| Franja amarilla *«Modo sin inicio de sesión (temporal)…»* | Es normal: es el aviso de ese modo | Para quitarla, vuelve al modo normal (`modo_con_login.sql` y `true`). |
+| Al abrir **Asistencia** sale *«No se pudo cargar React…»* | Sin Internet o la red bloquea `cdn.jsdelivr.net` (de ahí vienen React y `htm`) | Revisa la conexión o el bloqueador y recarga. El resto de la aplicación sigue funcionando. |
 | *«Todavía no hay estudiantes»* | No se ejecutó `seed.sql` (o la lista está realmente vacía) | Ejecuta `seed.sql` o crea estudiantes desde la aplicación. |
 | Un estudiante no aparece en **Asistencia** | Está inactivo, o hay un filtro de disciplina puesto | Revisa **Estudiantes → Mostrar inactivos** y el filtro. |
 | El Dashboard dice *«Aún no se ha tomado asistencia hoy»* aunque guardaste | Guardaste otra fecha, o no pulsaste **Guardar asistencia** | En **Asistencia** comprueba la fecha: el Dashboard solo cuenta *hoy*. |
@@ -253,6 +307,7 @@ Como la aplicación es solo HTML, CSS y JavaScript, se puede publicar en cualqui
   - hiciste el Paso 2 (registros públicos desactivados) y ejecutaste `schema.sql` (RLS activado), y
   - en `config.js` **solo** están la URL y la *anon key*. **Jamás la `service_role`.**
 - Revisa que no haya nada más en `config.js` antes de publicarlo.
+- ⚠️ **Antes de publicar, comprueba que `REQUIERE_INICIO_DE_SESION` sea `true`** en el `config.js` que vas a publicar y ejecuta `supabase/modo_con_login.sql`. **Nunca publiques con el modo sin inicio de sesión activo:** cualquiera podría leer y borrar todos los datos (ver [sección 6](#qué-cambia-con-el-modo-sin-inicio-de-sesión)).
 
 ### Opción A: GitHub Pages
 
@@ -288,6 +343,8 @@ Como la aplicación es solo HTML, CSS y JavaScript, se puede publicar en cualqui
 - **Publish directory:** `.`
 - En las variables de entorno del sitio crea `SUPABASE_URL` y `SUPABASE_ANON_KEY` con tus valores.
 
+El `config.js` que genera ese comando no incluye `REQUIERE_INICIO_DE_SESION`, así que el sitio publicado **pide iniciar sesión** (lo seguro).
+
 > Nota: la opción B2 no se probó al preparar este proyecto; si falla, usa la B1 o la opción A.
 
 ### Después de publicar: la URL en Supabase
@@ -313,7 +370,7 @@ Hay tres piezas:
 
 ```
  ┌───────────────────────────────┐
- │  1. NAVEGADOR (la persona)    │   index.html + app.js (+ Tailwind)
+ │  1. NAVEGADOR (la persona)    │   index.html + app.js (+ Tailwind y React)
  │     ve pantallas, hace clic,  │   Aquí vive TODO el código que escribimos.
  │     escribe en formularios    │
  └───────────────┬───────────────┘
@@ -341,19 +398,19 @@ Hay tres piezas:
 
 En palabras sencillas:
 
-- **El navegador** es la cara de la aplicación: dibuja las pantallas y reacciona a lo que hace la persona. No guarda nada importante.
+- **El navegador** es la cara de la aplicación: dibuja las pantallas y reacciona a lo que hace la persona. No guarda nada importante. Casi todo lo dibuja JavaScript vainilla; la vista de Asistencia la dibuja **React**.
 - **El SDK** es el "mensajero": lleva y trae mensajes entre el navegador y Supabase.
 - **Supabase** es el "archivo con guardia": guarda los datos y decide quién puede verlos o cambiarlos. Aunque alguien se saltara nuestra página, la base de datos se sigue defendiendo sola.
 
 **Ejemplo del flujo de datos: guardar la asistencia**
 
-1. La persona mueve los interruptores. `manejarCambioDeInterruptor` solo anota las marcas **en la memoria** de la página; todavía no se envía nada.
-2. Pulsa **Guardar asistencia**. `guardarAsistencia` arma una lista de registros: `{ estudiante_id, fecha, asistio }`, uno por estudiante de la lista.
-3. `clienteSupabase.from("asistencias").upsert(...)` entrega la lista al SDK, que la envía por Internet junto con la sesión de la persona.
+1. La persona mueve los interruptores. El componente de React anota las marcas en su **estado** (`anotarMarca`) y vuelve a dibujar el resumen y las etiquetas; todavía no se envía nada.
+2. Pulsa **Guardar asistencia**. La función `guardar` del componente arma una lista de registros: `{ estudiante_id, fecha, asistio }`, uno por estudiante de la lista.
+3. `guardarRegistrosDeAsistencia` (en `app.js`) hace `clienteSupabase.from("asistencias").upsert(...)`: entrega la lista al SDK, que la envía por Internet junto con la sesión de la persona.
 4. Supabase revisa: *¿hay sesión? ¿RLS lo permite?* Después, por cada registro, mira la regla `UNIQUE (estudiante_id, fecha)`: si ese estudiante ya tenía registro ese día, lo **actualiza**; si no, lo **crea**.
-5. Si todo sale bien, la aplicación muestra un aviso verde y vuelve a leer lo guardado (`cargarAsistencia`). Si algo falla, `describirError` lo traduce a español y se muestra un aviso rojo.
+5. Si todo sale bien, la aplicación muestra un aviso verde y vuelve a leer lo guardado (`cargarFecha`, que usa `consultarAsistenciaDeUnaFecha`). Si algo falla, `describirError` lo traduce a español y se muestra un aviso rojo.
 
-**Dónde está cada cosa en `app.js`**
+**Dónde está cada cosa en `app.js` y `asistencia-react.js`**
 
 | Sección | Qué contiene | Funciones de ejemplo |
 |---|---|---|
@@ -362,10 +419,11 @@ En palabras sencillas:
 | 3. Autenticación | Iniciar y cerrar sesión, revisar si ya hay sesión | `iniciarSesion`, `cerrarSesion`, `revisarSesion` |
 | 4. Disciplinas | Listar y agregar disciplinas | `cargarDisciplinas`, `agregarDisciplina` |
 | 5. Estudiantes | Tabla, buscador, filtros, formulario con validación, desactivar y reactivar | `cargarEstudiantes`, `validarEstudiante`, `guardarEstudiante` |
-| 6. Asistencia | Fecha, interruptores y guardado con upsert | `cargarAsistencia`, `guardarAsistencia` |
+| 6. Asistencia | Consultar y guardar (upsert) la asistencia, y el «puente» con la vista hecha en React | `consultarAsistenciaDeUnaFecha`, `guardarRegistrosDeAsistencia`, `abrirVistaAsistencia` |
 | 7. Dashboard | Cálculo y dibujo de las métricas | `calcularMetricasDelDashboard`, `cargarDashboard` |
 | 8. Navegación | Mostrar una vista y ocultar las demás | `mostrarVista`, `navegarAVista` |
-| 9. Inicio | Conectar eventos y arrancar | `conectarEventos`, `iniciarAplicacion` |
+| 9. Inicio | Conectar eventos y arrancar (con o sin inicio de sesión) | `conectarEventos`, `iniciarAplicacion` |
+| `asistencia-react.js` | La pantalla de Asistencia: componentes de React y su estado | `FilaDeAsistencia`, `VistaDeAsistencia`, `window.VistaAsistencia` |
 
 ### 9.3 Glosario corto
 
@@ -381,25 +439,93 @@ En palabras sencillas:
 | **CHECK** | Una regla de PostgreSQL que **rechaza** filas que no la cumplan. | `edad between 3 and 99`; los menores de 18 deben tener acudiente |
 | **Validación en dos capas** | Revisar los datos **dos veces**: primero en el formulario (rápido, con mensajes amables) y otra vez en la base de datos (la última palabra, que nadie puede saltarse). | `validarEstudiante` en `app.js` + `CHECK` en `schema.sql` |
 | **SDK** | Una librería con funciones ya hechas para usar un servicio. | `supabase-js`, que cargamos por CDN |
-| **CDN** | Un servidor en Internet que entrega librerías por una URL. | Tailwind y `supabase-js` en `index.html` |
+| **CDN** | Un servidor en Internet que entrega librerías por una URL. | Tailwind, `supabase-js`, React y `htm` en `index.html` |
+| **React** | Una librería para construir pantallas. En vez de decir *cómo cambiar* la pantalla paso a paso, se describe *cómo se ve* para unos datos, y React la actualiza sola. | La vista de Asistencia (`asistencia-react.js`) |
+| **Componente** | Una función de React que devuelve un trozo de pantalla. Se pueden reutilizar y combinar, como piezas de Lego. | `FilaDeAsistencia` (una fila) dentro de `VistaDeAsistencia` (toda la vista) |
+| **Estado** (*state*) | Los datos que, cuando cambian, hacen que React vuelva a dibujar el componente. | `const [marcas, setMarcas] = useState({})` |
+| **Hook** | Una función de React (su nombre empieza con `use`) que da poderes a un componente: `useState` le da memoria y `useEffect` le permite hacer algo cuando aparece o desaparece. | `useState`, `useEffect` en `asistencia-react.js` |
+| **Rol anónimo** (`anon`) | El "usuario" con el que la base de datos trata a quien no ha iniciado sesión. Con RLS bien configurado no puede hacer nada. | `modo_sin_login.sql` le da permisos; `modo_con_login.sql` se los quita |
 
-### 9.4 Guion de demostración (unos 5 minutos)
+### 9.4 Dónde usamos React y qué mejora
 
-**Antes de empezar (preparación):** ejecuta `seed.sql` con datos limpios y borra la asistencia de hoy (ver [sección 5](#5-prueba-rápida-todo-funciona)); abre la aplicación **cerrada** (con el login a la vista); ten abierto el **Table Editor** de Supabase en otra pestaña; sube el zoom del navegador (125 %) para que se lea desde atrás. Si no hay Internet, ten capturas de pantalla de respaldo.
+**Dónde:** solo en la vista **Asistencia** (archivo `asistencia-react.js`). El resto de la aplicación sigue en JavaScript vainilla, a propósito: así se pueden comparar los dos estilos en el mismo proyecto.
+
+**Por qué justo ahí:** Asistencia es la parte donde más cosas cambian a la vez. Al mover un solo interruptor hay que actualizar la marca en memoria, el texto «Presente/Ausente» (y su color), el resumen «Presentes · Ausentes · Total» y el aviso «Cambios sin guardar»; y si se cambia de fecha o de disciplina, toda la lista. Ese es justo el tipo de problema para el que se creó React.
+
+**El problema de antes (vainilla):** cada evento tenía que acordarse de actualizar a mano todas esas cosas. Al mover un interruptor, por ejemplo (código simplificado):
+
+```js
+estado.marcasDeAsistencia[id] = interruptor.checked;      // 1. anotar el dato
+estado.asistenciaModificada = true;                       // 2. anotar que hay cambios
+pintarEstadoDelInterruptor(fila, interruptor.checked);    // 3. cambiar el texto y el color de ESA fila
+actualizarResumenDeAsistencia();                          // 4. recalcular el resumen y el aviso
+```
+
+Si se olvidaba uno de los pasos, la pantalla quedaba contradiciendo a los datos: errores fáciles de cometer y difíciles de ver.
+
+**La idea de React:** en lugar de decir *cómo cambiar* la pantalla, se describe *cómo se ve* para unos datos y React se ocupa de actualizarla. Ahora, al mover el interruptor solo se anota el dato:
+
+```js
+setMarcas((marcasActuales) => ({ ...marcasActuales, [idEstudiante]: presente }));
+setModificada(true);
+```
+
+y el texto, el color, el resumen y el aviso se **calculan** en cada dibujo a partir del estado:
+
+```js
+const presentes = visibles.filter((estudiante) => marcas[estudiante.id]).length;
+const resumen = "Presentes: " + presentes + " · Ausentes: " + (visibles.length - presentes) + " · Total: " + visibles.length;
+// y dentro de cada fila:  ${presente ? "Presente" : "Ausente"}
+```
+
+**Cómo está armado:**
+
+- **2 componentes:** `FilaDeAsistencia` (una fila: nombre e interruptor) y `VistaDeAsistencia` (fecha, filtro, lista, resumen y botón).
+- **9 variables de estado** (`useState`): la fecha cargada, lo escrito en el campo de fecha, las disciplinas, el filtro, los estudiantes, la asistencia ya guardada, las marcas, si ya cargó y si hay cambios sin guardar.
+- **2 efectos** (`useEffect`): uno carga los datos cuando la vista aparece y otro le avisa al resto de la aplicación si hay cambios sin guardar.
+- Las consultas a Supabase **no** están en el componente: se quedaron en `app.js` (`consultarAsistenciaDeUnaFecha` y `guardarRegistrosDeAsistencia`). React solo se ocupa de la pantalla.
+
+**Qué mejoró (con cifras reales de este proyecto):**
+
+| | Antes (vainilla) | Después (React) |
+|---|---|---|
+| Funciones cuyo único trabajo era mantener la pantalla igual a los datos | 5 (`pintarEstadoDelInterruptor`, `crearFilaDeAsistencia`, `actualizarResumenDeAsistencia`, `dibujarListaDeAsistencia`, `limpiarAsistenciaEnPantalla`) | 0: lo hace React |
+| Cambios hechos a mano sobre la pantalla dentro de la vista (`textContent =`, `className =`, `checked =`, `value =`, `classList`) | 16 | 0 |
+| Datos de la asistencia en la variable compartida `estado` (cualquier parte del programa podía cambiarlos) | 40 usos | 0: viven dentro del componente |
+| Referencias a la asistencia repartidas por `app.js`, fuera de su sección (elementos del HTML, limpiar, confirmar…) | 22 | 3 (el «puente») |
+| Al cancelar un cambio de disciplina | Había que devolver el selector a su valor con una línea de código | El selector se queda solo en su valor: el estado no cambió |
+
+**Lo que NO mejoró (y lo que costó):**
+
+- **No es menos código.** Antes: 216 líneas de JavaScript y 68 de HTML. Ahora: 67 de `app.js`, 271 del componente y 9 de HTML. (Una parte del aumento es que el HTML de la vista ahora vive dentro del componente.)
+- **Pesa más al cargar.** React, ReactDOM y `htm` suman unos 47 KB comprimidos (el SDK de Supabase pesa unos 54 KB).
+- **Hay dos estilos en el mismo proyecto,** y las dos partes se hablan por un «puente» de 3 funciones. Además hubo que usar `flushSync` para que la lista ya esté dibujada cuando desaparece el indicador de «cargando» (que no es de React).
+- **Más cosas que aprender** (componente, estado, efecto) y **una dependencia más que puede fallar:** si el CDN de React no carga, la vista Asistencia no funciona (la aplicación lo avisa y el resto sigue).
+- **Sin compilador no hay JSX.** Se usa `htm`, que es lo más parecido.
+
+**¿Valió la pena?** Para esta vista, sí: es donde el estado cambia en muchos sitios a la vez. Para el resto (el login, la tabla de estudiantes, el Dashboard) el JavaScript vainilla alcanza y es más simple: usar React en todo sería agregar peso y complejidad sin una mejora clara. Si el proyecto creciera, los candidatos serían el formulario de estudiantes (muchas validaciones que dependen unas de otras) y la tabla con sus filtros.
+
+**Cómo se conectan las dos partes:** `app.js` abre la vista con `abrirVistaAsistencia()`, que llama a `window.VistaAsistencia.abrir()`. A su vez, el componente usa funciones de `app.js` (consultar, guardar, avisos, confirmación). Al cerrar sesión, `app.js` llama a `cerrar()` y React desmonta la vista, con todos sus datos.
+
+**Cómo se comprobó que se comporta igual que antes:** durante el desarrollo se usaron pruebas automáticas en el navegador (166 para esta vista) que dieron el mismo resultado con la versión de vainilla y con la de React, tanto con el React de desarrollo (que avisa de malas prácticas y no emitió ninguna advertencia) como con el minificado. Esas pruebas no forman parte del repositorio (ver [sección 10](#10-límites-conocidos-y-mejoras-posibles)).
+
+### 9.5 Guion de demostración (unos 5 minutos)
+
+**Antes de empezar (preparación):** para la exposición usa el **modo normal, con login** (el modo sin inicio de sesión es solo para ensayar); ejecuta `seed.sql` con datos limpios y borra la asistencia de hoy (ver [sección 5](#5-prueba-rápida-todo-funciona)); abre la aplicación **cerrada** (con el login a la vista); ten abierto el **Table Editor** de Supabase en otra pestaña; sube el zoom del navegador (125 %) para que se lea desde atrás. Si no hay Internet, ten capturas de pantalla de respaldo.
 
 | Tiempo | Vista | Qué mostrar | Qué decir |
 |---|---|---|---|
-| 0:00 – 0:30 | — | Presenta el proyecto. | «Es una aplicación para administrar academias: estudiantes, pagos y asistencia. Usa HTML, Tailwind, JavaScript y Supabase.» |
+| 0:00 – 0:30 | — | Presenta el proyecto. | «Es una aplicación para administrar academias: estudiantes, pagos y asistencia. Usa HTML, Tailwind, JavaScript y Supabase, y la vista de asistencia está hecha con React.» |
 | 0:30 – 1:15 | **Login** | Muestra que solo se ve el login. Escribe una contraseña mala (aviso rojo). Entra con la correcta. | «Sin sesión no se ve nada. Además, la base de datos también rechaza a quien no inició sesión: esa protección se llama RLS.» |
 | 1:15 – 2:00 | **Dashboard** | Señala las tarjetas (9 activos, pagos al día / pendientes / vencidos) y el mensaje *Aún no se ha tomado asistencia hoy*. | «Estas cifras se calculan con datos reales de la base y se actualizan cada vez que entro. Todavía no hay asistencia hoy, por eso no hay porcentaje.» |
 | 2:00 – 3:00 | **Estudiantes** | Busca `sofia`. Filtra por Fútbol. Crea un estudiante de 10 años sin acudiente (sale el error) y luego con acudiente. Desactiva uno, marca **Mostrar inactivos** y reactívalo. | «El buscador no distingue tildes. El acudiente es obligatorio solo para menores de 18. No borramos estudiantes: los desactivamos, para no perder su historial.» |
 | 3:00 – 3:20 | **Disciplinas** | Agrega *Natación*. Intenta *futbol* (la rechaza). | «Cada estudiante pertenece a una disciplina. No permite repetidas aunque cambien las tildes o las mayúsculas.» |
-| 3:20 – 4:30 | **Asistencia** | Filtra por Fútbol, marca un ausente y guarda. Mueve otro interruptor y cambia la fecha (sale *¿Descartar cambios?*); cancela. Guarda de nuevo y muestra en Supabase que no se duplican filas. | «Guardar usa *upsert*: si ya existe el registro de ese estudiante ese día, lo actualiza; si no, lo crea. La base impide duplicados con una regla UNIQUE.» |
+| 3:20 – 4:30 | **Asistencia** | Filtra por Fútbol, marca un ausente y guarda. Mueve otro interruptor y cambia la fecha (sale *¿Descartar cambios?*); cancela. Guarda de nuevo y muestra en Supabase que no se duplican filas. | «Esta vista está hecha con React (ver 9.4): el resumen y las etiquetas se calculan solos a partir de las marcas. Guardar usa *upsert*: si ya existe el registro de ese estudiante ese día, lo actualiza; si no, lo crea. La base impide duplicados con una regla UNIQUE.» |
 | 4:30 – 5:00 | **Dashboard** → cerrar sesión | Vuelve al Dashboard: aparece el porcentaje y "Sin registrar". Cierra sesión. | «El porcentaje es de presentes sobre los registrados; "Sin registrar" son los que aún faltan. Al cerrar sesión se borra todo de la pantalla.» |
 
 **Si te sobra tiempo:** en una ventana de incógnito muestra que sin sesión solo ves el login, y ejecuta en el SQL Editor `set role anon; select * from estudiantes;` para enseñar el *permission denied*.
 
-### 9.5 Preguntas que podría hacer un profesor
+### 9.6 Preguntas que podría hacer un profesor
 
 **1. La *anon key* está en el código y cualquiera puede verla. ¿No es peligroso?**
 No, porque no es una clave secreta: está pensada para ir en el navegador. Lo que protege los datos es RLS, las reglas de la base de datos. Con la *anon key* y sin iniciar sesión, la base responde *permission denied*. Lo peligroso sería poner la clave `service_role`, que se salta RLS, y eso nunca lo hacemos.
@@ -431,6 +557,15 @@ Todas las operaciones usan `try/catch`: si falla, aparece un aviso rojo en espa�
 **10. ¿Cómo saben cuál es la fecha de «hoy»? ¿Y si es de noche?**
 Usamos la fecha y la zona horaria del navegador (`new Date()`), no la de UTC. Si usáramos UTC, en Colombia a partir de las 7:00 p. m. ya sería «mañana» y la asistencia se guardaría en el día equivocado. Además, no se permite guardar asistencia de fechas futuras.
 
+**11. ¿Por qué usaron React solo en una vista y no en todo el proyecto?**
+Porque ahí es donde más ayuda: en Asistencia cambian muchas cosas a la vez al mover un interruptor (la marca, el texto, el color, el resumen, el aviso de «sin guardar»), y React las mantiene sincronizadas solo. En el login, la tabla o el Dashboard el JavaScript vainilla alcanza y es más simple; usar React en todo habría agregado peso (unos 47 KB) y conceptos nuevos sin una mejora clara. Además, React puede encargarse de un solo rincón de la página (un `<div id="raiz-asistencia">`), así que se puede mezclar con el resto.
+
+**12. ¿Qué mejoró con React y qué costó?**
+Mejoró que los datos y la pantalla ya no se desincronizan: pasamos de 5 funciones que actualizaban la pantalla a mano y 40 usos de variables compartidas a cero. Costó: no hay menos código (hay más líneas), la página pesa unos 47 KB más, hay dos estilos de programar en el mismo proyecto y una dependencia más que puede fallar (si el CDN de React no carga, la vista Asistencia no funciona, aunque el resto sí y la aplicación lo avisa).
+
+**13. ¿Qué pasa si quitan el inicio de sesión? ¿Sigue siendo seguro?**
+No. Sin login, la base de datos tiene que aceptar al rol anónimo, y como la *anon key* es pública, cualquiera con la dirección del proyecto podría ver y cambiar todo. Por eso el modo sin inicio de sesión es opcional y temporal: hay que ejecutar un SQL aparte y cambiar `config.js`, la aplicación muestra una franja de advertencia, no debe usarse con datos reales y hay que volver al modo normal antes de publicar.
+
 ## 10. Límites conocidos y mejoras posibles
 
 Para ser honestos sobre lo que el proyecto **no** hace (sirve como lista de mejoras):
@@ -438,6 +573,9 @@ Para ser honestos sobre lo que el proyecto **no** hace (sirve como lista de mejo
 - **Un solo tipo de usuario.** Todos los usuarios con sesión pueden hacer todo. Si hiciera falta tener, por ejemplo, profesores que solo toman asistencia, habría que agregar roles y políticas RLS más estrictas.
 - **Máximo 1000 filas por consulta.** Supabase limita lo que devuelve cada consulta. Para una academia es suficiente; para más habría que paginar.
 - **Tailwind por CDN.** Es cómodo para aprender y para un proyecto escolar, pero el propio Tailwind recomienda compilarlo para producción (la consola muestra un aviso). El CDN de Tailwind tampoco tiene versión fija.
-- **El SDK de Supabase no usa *Subresource Integrity*.** La versión está fija (2.117.2), pero no se comprueba un *hash* del archivo. Una mejora de seguridad sería agregar el atributo `integrity` en la etiqueta `<script>`.
-- **No hay pruebas automáticas en el repositorio.** La verificación se hace con la lista de la [sección 5](#5-prueba-rápida-todo-funciona).
+- **Los scripts de CDN no usan *Subresource Integrity*.** Las versiones de Supabase (2.117.2), React (18.3.1) y `htm` (3.1.1) están fijas, pero no se comprueba un *hash* de cada archivo. Una mejora de seguridad sería agregar el atributo `integrity` en cada etiqueta `<script>`.
+- **Dos estilos de código.** La vista de Asistencia usa React y el resto JavaScript vainilla, conectados por un pequeño «puente». Es útil para aprender y comparar, pero en un proyecto real se suele elegir uno solo (o pasar todo a React con un compilador).
+- **React 18 por CDN y sin JSX.** React 19 ya no se ofrece para cargar con `<script>`, y sin compilador se usa `htm` en vez de JSX. Con npm y un compilador (por ejemplo Vite) se tendría JSX y React 19, a cambio de salir de la regla «sin npm».
+- **El modo sin inicio de sesión no es para producción.** Deja la base abierta al rol anónimo (ver [sección 6](#qué-cambia-con-el-modo-sin-inicio-de-sesión)).
+- **No hay pruebas automáticas en el repositorio.** Durante el desarrollo se usaron pruebas automáticas en el navegador, pero necesitan herramientas (Node y Playwright) que no forman parte del proyecto. Quien clone el repositorio verifica con la lista de la [sección 5](#5-prueba-rápida-todo-funciona).
 - **No hay registro de quién cambió qué**, ni recuperación de contraseña, ni exportación de datos.
