@@ -394,49 +394,14 @@
         </div>
       </section>
 
-      <!-- Vista: Asistencia (fecha, interruptores presente/ausente y guardar) -->
+      <!-- Vista: Asistencia. Está hecha con REACT (archivo asistencia-react.js):
+           React dibuja aquí dentro la fecha, el filtro, la lista con interruptores y la barra de guardar.
+           Todo lo demás de la página sigue siendo JavaScript vainilla. -->
       <section data-vista="asistencia" class="hidden">
         <h2 class="text-xl font-bold text-slate-900">Asistencia</h2>
         <p class="mt-1 text-sm text-slate-500">Elige la fecha, marca quién vino y pulsa «Guardar asistencia». Solo aparecen los estudiantes activos.</p>
 
-        <!-- Fecha y disciplina. Se guarda la asistencia de los estudiantes que ves en la lista. -->
-        <div class="mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-end">
-          <div>
-            <label for="campo-fecha-asistencia" class="block text-sm font-medium text-slate-700">Fecha</label>
-            <div class="mt-1 flex gap-2">
-              <input id="campo-fecha-asistencia" type="date" min="2000-01-01"
-                     class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
-              <button id="boton-fecha-hoy" type="button"
-                      class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                Hoy
-              </button>
-            </div>
-          </div>
-          <div class="sm:w-64">
-            <label for="filtro-disciplina-asistencia" class="block text-sm font-medium text-slate-700">Disciplina</label>
-            <select id="filtro-disciplina-asistencia"
-                    class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"></select>
-          </div>
-        </div>
-
-        <p id="mensaje-sin-asistencia"
-           class="mt-4 hidden rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500"></p>
-
-        <div id="contenedor-asistencia" class="mt-4 hidden">
-          <ul id="lista-asistencia" class="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"></ul>
-
-          <!-- Barra de guardado: se queda pegada abajo para no tener que recorrer toda la lista -->
-          <div class="sticky bottom-0 z-10 -mx-4 mt-4 flex items-center justify-between gap-3 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border sm:shadow-sm">
-            <div class="min-w-0">
-              <p id="resumen-asistencia" class="text-sm font-medium text-slate-700"></p>
-              <p id="aviso-sin-guardar" class="hidden text-xs font-medium text-amber-600">Cambios sin guardar</p>
-            </div>
-            <button id="boton-guardar-asistencia" type="button"
-                    class="shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-              Guardar asistencia
-            </button>
-          </div>
-        </div>
+        <div id="raiz-asistencia"></div>
       </section>
 
       <!-- Vista: Disciplinas (lista y formulario para agregar) -->
@@ -532,39 +497,20 @@
 
 
   <!-- =================================================================
-       PLANTILLA: fila de la lista de asistencia.
-       El interruptor es un checkbox escondido (sr-only) y dos <span> que
-       dibujan el "riel" y la "bolita". Gracias a "peer", cuando el checkbox
-       está marcado (peer-checked) el riel se pone verde y la bolita se mueve.
-       ================================================================= -->
-  <template id="plantilla-fila-asistencia">
-    <li class="flex items-center justify-between gap-3 px-4 py-3">
-      <div class="min-w-0">
-        <p data-texto="nombre" class="truncate font-medium text-slate-900"></p>
-        <p class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
-          <span data-texto="detalle"></span>
-          <span data-texto="sin-registro" class="hidden rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-800">Sin registrar</span>
-        </p>
-      </div>
-
-      <label class="relative inline-flex shrink-0 cursor-pointer items-center gap-3">
-        <input type="checkbox" role="switch" data-campo="interruptor" class="peer sr-only">
-        <span class="h-7 w-12 rounded-full bg-slate-300 transition-colors peer-checked:bg-emerald-500 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500 peer-focus-visible:ring-offset-2"></span>
-        <span class="pointer-events-none absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"></span>
-        <span data-texto="estado" class="w-16 text-sm font-medium"></span>
-      </label>
-    </li>
-  </template>
-
-
-  <!-- =================================================================
        SCRIPTS (el orden importa)
        1. SDK de Supabase  → crea window.supabase
-       2. config.js        → define SUPABASE_URL y SUPABASE_ANON_KEY
-       3. app.js           → la lógica, que usa lo anterior
+       2. React, ReactDOM  → crean window.React y window.ReactDOM (versión 18, sin compilar)
+          y htm            → crea window.htm: permite escribir "HTML dentro de JavaScript" sin compilar
+       3. config.js        → define SUPABASE_URL y SUPABASE_ANON_KEY
+       4. app.js           → la lógica de toda la aplicación, que usa lo anterior
+       5. asistencia-react.js → la vista Asistencia, hecha con React (usa funciones de app.js)
        ================================================================= -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
+  <script src="asistencia-react.js"></script>
 </body>
 </html>
