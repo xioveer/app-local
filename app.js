@@ -561,9 +561,15 @@ function validarNombreDeDisciplina(nombre) {
   return "";
 }
 
+// true mientras se guarda una disciplina (evita enviar el formulario dos veces con Enter).
+let guardandoDisciplina = false;
+
 // Se ejecuta al enviar el formulario de disciplinas: valida y guarda la nueva disciplina.
 async function agregarDisciplina(evento) {
   evento.preventDefault();
+  if (guardandoDisciplina) {
+    return;
+  }
 
   // trim quita espacios de los extremos; replace junta los espacios repetidos en uno solo.
   const nombre = elementos.campoNombreDisciplina.value.trim().replace(/\s+/g, " ");
@@ -575,6 +581,7 @@ async function agregarDisciplina(evento) {
     return;
   }
 
+  guardandoDisciplina = true;
   mostrarCargando("Guardando disciplina...");
   try {
     const { error } = await clienteSupabase.from("disciplinas").insert({ nombre: nombre });
@@ -589,6 +596,7 @@ async function agregarDisciplina(evento) {
       : describirError(error);
     mostrarAviso(mensaje, "error");
   } finally {
+    guardandoDisciplina = false;
     ocultarCargando();
   }
 }
@@ -608,6 +616,10 @@ const CLASES_DE_PAGO_INACTIVO = "bg-slate-200 text-slate-500";
 
 // Edad mínima de la que se considera mayor de edad (por debajo, el acudiente es obligatorio).
 const EDAD_DE_MAYORIA = 18;
+
+// true mientras se está guardando un estudiante. El indicador de "cargando" tapa el mouse pero
+// NO el teclado: sin este candado, pulsar Enter dos veces seguidas crearía dos copias.
+let guardandoEstudiante = false;
 
 
 /* ---------- Cargar y mostrar la tabla ---------- */
@@ -951,6 +963,9 @@ function prepararRegistroDeEstudiante(datos) {
 // Se ejecuta al enviar el formulario: valida y luego crea o actualiza el estudiante.
 async function guardarEstudiante(evento) {
   evento.preventDefault();
+  if (guardandoEstudiante) {
+    return;
+  }
   limpiarErroresDelFormulario();
 
   const datos = leerDatosDelFormulario();
@@ -964,6 +979,7 @@ async function guardarEstudiante(evento) {
   const registro = prepararRegistroDeEstudiante(datos);
   const estaEditando = estado.idEstudianteEnEdicion !== null;
 
+  guardandoEstudiante = true;
   mostrarCargando(estaEditando ? "Guardando cambios..." : "Guardando estudiante...");
   try {
     if (estaEditando) {
@@ -989,6 +1005,7 @@ async function guardarEstudiante(evento) {
   } catch (error) {
     mostrarAviso(describirError(error), "error");
   } finally {
+    guardandoEstudiante = false;
     ocultarCargando();
   }
 }
