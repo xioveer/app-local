@@ -1,0 +1,43 @@
+
+AT-01. Saltarse el login "a la fuerza" desde las herramientas del navegador (la base está cerrada al rol anónimo)
+  ✔ la interfaz se puede mostrar, pero el servidor responde "sin permiso"
+  ✔ NO aparece ningún dato de estudiantes en la página
+  ✔ consultar directo con clienteSupabase tampoco devuelve datos (error 42501)
+
+AT-02. Cambiar las reglas del cliente desde la consola (el navegador es del atacante)
+  ✔ una constante de config.js no se puede reasignar (TypeError)
+  ✔ pero las FUNCIONES de app.js sí se pueden reemplazar (es el navegador del atacante)
+  ✔ aun sin validación del cliente, la BASE rechaza al menor sin acudiente (CHECK, error 23514)
+  ✔ no se creó ningún estudiante
+
+AT-03. Valor manipulado en un <select> ("constructor" en vez de al_dia / pendiente / vencido)
+    · la validación del cliente dejó pasar el valor "constructor" (hueco menor: ESTILOS_DE_PAGO["constructor"] existe): true
+  ✔ la base de datos lo rechazó con CHECK (23514) y la app mostró un mensaje claro
+  ✔ no se guardó nada
+
+AT-04. XSS almacenado: batería de cargas maliciosas en nombre, categoría, acudiente y disciplina
+  ✔ se guardaron las 14 cargas como estudiantes (los formularios no las rechazan)
+  ✔ el diálogo muestra el nombre como TEXTO
+  ✔ el formulario de edición conserva el texto tal cual en el campo
+  ✔ NINGUNA carga se ejecutó (window.__xss sigue sin definir)
+  ✔ no se creó ningún elemento peligroso (img, svg, script, iframe, a, style...) en las listas, avisos ni el diálogo
+  ✔ el <style> inyectado no se aplicó
+  ✔ las 14 cargas aparecen en la tabla como texto literal (incluidas las entidades &lt; sin decodificar)
+
+AT-05. Doble envío con el teclado (Enter dos veces seguidas) con latencia de red realista (300 ms)
+    · resultado: 1 inserciones enviadas, 1 copia(s) guardada(s) del estudiante
+  ✔ Enter dos veces crea UNA sola copia del estudiante
+
+AT-05b. Doble envío del formulario de disciplinas (Enter dos veces)
+    · resultado: 1 solicitud(es) de inserción enviadas, 1 copia(s) guardada(s)
+  ✔ Enter dos veces envía UNA sola solicitud de inserción
+  ✔ y no aparece un aviso de error por «duplicada»
+
+AT-06. Política de seguridad de contenido (CSP) propuesta: ¿la app funciona sin violaciones?
+  ✔ con la CSP activa, el flujo completo (login, crear, asistencia, dashboard) funciona
+  ✔ y no hay ninguna violación de CSP en la consola
+  ✔ contraprueba: un <script> inline inyectado queda BLOQUEADO por la CSP
+
+Errores de JavaScript sin capturar: 0
+
+RESULTADO: 22 correctas, 0 fallidas

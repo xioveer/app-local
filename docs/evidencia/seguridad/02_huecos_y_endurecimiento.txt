@@ -1,0 +1,52 @@
+=== E1-G. HALLAZGOS EN LA BASE DE DATOS (antes de endurecer)
+  G1) ¿La base acepta un nombre de 5 MB? (sin límite de longitud)
+aceptado: 5120 kB
+  G2) ¿Acepta asistencia de una fecha futura (2099-01-01)? (la regla solo está en el navegador)
+ERROR:  insert or update on table "asistencias" violates foreign key constraint "asistencias_estudiante_id_fkey"
+DETAIL:  Key (estudiante_id)=(1) is not present in table "estudiantes".
+  G3) ¿Acepta dos disciplinas que solo cambian en mayúsculas ('Fútbol' / 'FÚTBOL')?
+aceptada: FÚTBOL
+
+=== E1-H. MEDIDAS DE ENDURECIMIENTO (SQL propuesto, probado)
+NOTICE:  constraint "estudiantes_longitudes" of relation "estudiantes" does not exist, skipping
+NOTICE:  trigger "trg_asistencias_no_futuras" for relation "public.asistencias" does not exist, skipping
+  H1) nombre de 101 letras:
+ERROR:  new row for relation "estudiantes" violates check constraint "estudiantes_longitudes"
+  H1) nombre de 100 letras:
+aceptado
+  H2) asistencia 2099-01-01:
+ERROR:  No se puede registrar asistencia de una fecha futura (2099-01-01).
+  H2) asistencia de hoy:
+ERROR:  insert or update on table "asistencias" violates foreign key constraint "asistencias_estudiante_id_fkey"
+DETAIL:  Key (estudiante_id)=(1) is not present in table "estudiantes".
+  H2) asistencia de mañana (huso horario adelantado):
+ERROR:  insert or update on table "asistencias" violates foreign key constraint "asistencias_estudiante_id_fkey"
+DETAIL:  Key (estudiante_id)=(2) is not present in table "estudiantes".
+  H3) 'FÚTBOL' (mismo nombre que 'Fútbol'):
+ERROR:  duplicate key value violates unique constraint "disciplinas_nombre_sin_mayusculas"
+  H3) 'futbol' sin tilde (límite: lower() no quita tildes):
+ACEPTADA (queda el límite)
+  H3b) ¿está disponible la extensión unaccent? (para cerrar ese límite)
+2
+=== E1-G2/H2 (repetidas con ids válidos)
+  (estudiantes con ids 11…20)
+  ANTES del trigger — asistencia del 2099-01-01:
+  aceptada por la base: 2099-01-01
+  DESPUÉS del trigger:
+   2099-01-01 → ERROR:  No se puede registrar asistencia de una fecha futura (2099-01-01).
+   hoy        → aceptada
+   mañana (zona adelantada) → aceptada
+   pasado mañana → ERROR:  No se puede registrar asistencia de una fecha futura (2026-11-02).
+   UPDATE a fecha futura → ERROR:  No se puede registrar asistencia de una fecha futura (2099-01-01).
+
+=== E1-I. unaccent y pgcrypto
+  'futbol' (sin tilde, minúsculas) → ERROR:  duplicate key value violates unique constraint "disciplinas_nombre_unico_normalizado"
+  'FÚTBOL' → ERROR:  duplicate key value violates unique constraint "disciplinas_nombre_unico_normalizado"
+  'Natación' (distinta) → aceptada
+
+=== E1-J. Hash de contraseñas con bcrypt (pgcrypto): lo que hace Supabase Auth por dentro
+hash 1 de "mi_clave_segura": $2a$08$94Og8uA/CEhoPrXGTXp4petKfgP565LsxtVml0HGOoycunS8ss9fS
+hash 2 de la MISMA clave:    $2a$08$9SUUi0K1.2hbkb0iUtyTOea3EuYF174l/9ND8ZN/vqvWj3QFS2ZzG
+clave correcta → true | clave incorrecta → false
+MD5 de "mi_clave_segura" (NO usar para contraseñas): 5cab168f8e24891f300bb1f1f6450e33 → siempre el mismo
+  (la parte '$2a$08$' indica el algoritmo bcrypt y su costo; el resto del bloque inicial son 22 caracteres de 'sal' aleatoria)

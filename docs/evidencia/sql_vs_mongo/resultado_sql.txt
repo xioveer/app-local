@@ -1,0 +1,22 @@
+--- q1_dashboard
+ presentes | ausentes | registrados | sin_registrar | porcentaje 
+-----------+----------+-------------+---------------+------------
+         7 |        2 |           9 |             0 |       77.8
+(1 row)
+
+--- q2_por_disciplina
+    disciplina    | estudiantes | presentes | sin_registrar 
+------------------+-------------+-----------+---------------
+ Danza folclórica |           2 |         1 |             0
+ Fútbol           |           4 |         3 |             0
+ Guitarra         |           3 |         3 |             0
+(3 rows)
+
+--- q3_pagos
+ estado_pago | estudiantes 
+-------------+-------------
+ al_dia      |           5
+ pendiente   |           2
+ vencido     |           2
+(3 rows)
+

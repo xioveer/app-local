@@ -17,6 +17,8 @@ Es un proyecto escolar hecho con herramientas simples: **HTML, Tailwind CSS y Ja
 9. [Cómo explicar el proyecto](#9-cómo-explicar-el-proyecto)
 10. [Límites conocidos y mejoras posibles](#10-límites-conocidos-y-mejoras-posibles)
 
+**Documento aparte:** [Análisis técnico y auditoría](docs/analisis-tecnico-y-auditoria.md) (seguridad y pruebas de robustez, React frente a JavaScript puro, SQL frente a MongoDB), con su evidencia en [`docs/evidencia/`](docs/evidencia/).
+
 ---
 
 ## 1. Qué hace
@@ -70,6 +72,9 @@ app-local/
 ├── config.js             TU configuración real (la creas tú; NO se sube a GitHub).
 ├── .gitignore            Le dice a git que ignore config.js.
 ├── README.md             Este archivo.
+├── docs/
+│   ├── analisis-tecnico-y-auditoria.md   Auditoría de seguridad, React frente a vainilla y SQL frente a MongoDB.
+│   └── evidencia/        Resultados de las pruebas que respaldan el documento (más dos SQL propuestos).
 └── supabase/
     ├── schema.sql        Crea las tablas, restricciones, índices y políticas de seguridad (RLS).
     │                     Siempre deja la base en el estado SEGURO.
@@ -579,3 +584,5 @@ Para ser honestos sobre lo que el proyecto **no** hace (sirve como lista de mejo
 - **El modo sin inicio de sesión no es para producción.** Deja la base abierta al rol anónimo (ver [sección 6](#qué-cambia-con-el-modo-sin-inicio-de-sesión)).
 - **No hay pruebas automáticas en el repositorio.** Durante el desarrollo se usaron pruebas automáticas en el navegador, pero necesitan herramientas (Node y Playwright) que no forman parte del proyecto. Quien clone el repositorio verifica con la lista de la [sección 5](#5-prueba-rápida-todo-funciona).
 - **No hay registro de quién cambió qué**, ni recuperación de contraseña, ni exportación de datos.
+
+La [auditoría](docs/analisis-tecnico-y-auditoria.md) amplía esta lista con la evidencia de cada punto y un plan de acción priorizado; dos de sus propuestas (límites de longitud y fechas en la base, y políticas por rol) vienen como SQL probado, **sin aplicar**, en `docs/evidencia/seguridad/`.

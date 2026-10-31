@@ -1,0 +1,8 @@
+Q1 MongoDB: {"ausentes":2,"porcentaje":77.8,"presentes":7,"registrados":9,"sin_registrar":0}
+Q2 MongoDB: [{"disciplina":"Danza folclórica","estudiantes":2,"presentes":1,"sin_registrar":0},{"disciplina":"Fútbol","estudiantes":4,"presentes":3,"sin_registrar":0},{"disciplina":"Guitarra","estudiantes":3,"presentes":3,"sin_registrar":0}]
+Q3 MongoDB: [{"estado_pago":"al_dia","estudiantes":5},{"estado_pago":"pendiente","estudiantes":2},{"estado_pago":"vencido","estudiantes":2}]
+
+IDÉNTICO a SQL → Q1: true | Q2: true | Q3: true
+Q1 sin registros (fecha sin datos): {"ausentes":0,"porcentaje":null,"presentes":0,"registrados":0,"sin_registrar":9} ← porcentaje null: se evitó la división por cero
+
+Tamaños BSON: {"una_asistencia_bytes":37,"estudiante_sin_asistencias_bytes":238,"un_anio_156_clases_kb":6.5,"cinco_anios_780_clases_kb":32.1,"limite_mongodb_mb":16,"anios_para_llegar_al_limite_a_156_clases_por_anio":2907}

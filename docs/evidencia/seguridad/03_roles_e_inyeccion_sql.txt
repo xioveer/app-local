@@ -1,0 +1,16 @@
+=== E1-K. POLÍTICA POR ROL: solo quien tenga rol 'admin' en app_metadata (no basta con tener sesión)
+NOTICE:  policy "Solo admin gestiona estudiantes" for relation "public.estudiantes" does not exist, skipping
+     [admin (app_metadata.rol = admin)] ve 10 estudiantes 
+     [admin cambia un dato] actualizó 1 
+     [usuario con sesión pero SIN rol] ve 0 estudiantes 
+     [ese usuario intenta insertar] ERROR:  new row violates row-level security policy for table "estudiantes" 
+     [profesor (app_metadata.rol = profesor)] ve 0 estudiantes 
+   → TRAMPA: el usuario escribe 'admin' en SU PROPIO user_metadata (que sí puede editar):
+     [user_metadata.rol = admin (falso)] ve 0 estudiantes 
+     (la política solo mira app_metadata, que solo puede cambiar el administrador de Supabase: por eso user_metadata nunca se usa para permisos)
+
+=== E1-L. INYECCIÓN SQL: consulta armada con texto vs. parametrizada (tabla desechable)
+  Entrada maliciosa: x' OR '1'='1
+NOTICE:  CONCATENADA  → devolvió 2 filas (¡se saltó el filtro!)
+NOTICE:  PARAMETRIZADA → devolvió 0 filas (lo trató como un nombre de usuario raro)
+  (La librería de Supabase envía los datos como JSON a PostgREST, que arma consultas parametrizadas: el proyecto nunca concatena SQL.)

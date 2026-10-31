@@ -1,0 +1,55 @@
+NOTA SOBRE ESTE ARCHIVO
+  Es la PRIMERA corrida de las pruebas en navegador, hecha con el app.js ANTERIOR al arreglo
+  (commit 914f412). Muestra 2 fallos y NO son del mismo tipo:
+    · AT-04 «el diálogo muestra el nombre como TEXTO»  → fue un error de MI PRUEBA (elegía la fila por
+      posición y no por nombre exacto). Se corrigió la prueba y el fallo desapareció SIN tocar la app.
+    · AT-05 «Enter dos veces crea UNA sola copia»      → fue un error REAL de la aplicación. Se arregló
+      en el commit 050ae03 (candado guardandoEstudiante / guardandoDisciplina).
+  Al final se añade la medición del formulario de disciplinas sobre el app.js sin el arreglo.
+=====================================================================================================
+
+AT-01. Saltarse el login "a la fuerza" desde las herramientas del navegador (la base está cerrada al rol anónimo)
+  ✔ la interfaz se puede mostrar, pero el servidor responde "sin permiso"
+  ✔ NO aparece ningún dato de estudiantes en la página
+  ✔ consultar directo con clienteSupabase tampoco devuelve datos (error 42501)
+
+AT-02. Cambiar las reglas del cliente desde la consola (el navegador es del atacante)
+  ✔ una constante de config.js no se puede reasignar (TypeError)
+  ✔ pero las FUNCIONES de app.js sí se pueden reemplazar (es el navegador del atacante)
+  ✔ aun sin validación del cliente, la BASE rechaza al menor sin acudiente (CHECK, error 23514)
+  ✔ no se creó ningún estudiante
+
+AT-03. Valor manipulado en un <select> ("constructor" en vez de al_dia / pendiente / vencido)
+    · la validación del cliente dejó pasar el valor "constructor" (hueco menor: ESTILOS_DE_PAGO["constructor"] existe): true
+  ✔ la base de datos lo rechazó con CHECK (23514) y la app mostró un mensaje claro
+  ✔ no se guardó nada
+
+AT-04. XSS almacenado: batería de cargas maliciosas en nombre, categoría, acudiente y disciplina
+  ✔ se guardaron las 14 cargas como estudiantes (los formularios no las rechazan)
+  ✘ FALLA: el diálogo muestra el nombre como TEXTO 
+  ✔ el formulario de edición conserva el texto tal cual en el campo
+  ✔ NINGUNA carga se ejecutó (window.__xss sigue sin definir)
+  ✔ no se creó ningún elemento peligroso (img, svg, script, iframe, a, style...) en las listas, avisos ni el diálogo
+  ✔ el <style> inyectado no se aplicó
+  ✔ las 14 cargas aparecen en la tabla como texto literal (incluidas las entidades &lt; sin decodificar)
+
+AT-05. Doble envío con el teclado (Enter dos veces seguidas) con latencia de red realista (300 ms)
+    · resultado: 2 inserciones enviadas, 2 copia(s) guardada(s) del estudiante
+  ✘ FALLA: Enter dos veces crea UNA sola copia del estudiante copias=2
+
+AT-06. Política de seguridad de contenido (CSP) propuesta: ¿la app funciona sin violaciones?
+  ✔ con la CSP activa, el flujo completo (login, crear, asistencia, dashboard) funciona
+  ✔ y no hay ninguna violación de CSP en la consola
+  ✔ contraprueba: un <script> inline inyectado queda BLOQUEADO por la CSP
+
+Errores de JavaScript sin capturar: 0
+
+RESULTADO: 18 correctas, 2 fallidas
+
+----- Medición adicional (app.js sin el arreglo, con la prueba ya corregida): formulario de disciplinas -----
+    · resultado: 2 inserciones enviadas, 2 copia(s) guardada(s) del estudiante
+  ✘ FALLA: Enter dos veces crea UNA sola copia del estudiante copias=2
+AT-05b. Doble envío del formulario de disciplinas (Enter dos veces)
+    · resultado: 2 solicitud(es) de inserción enviadas, 1 copia(s) guardada(s)
+  ✘ FALLA: Enter dos veces envía UNA sola solicitud de inserción envios=2
+  ✘ FALLA: y no aparece un aviso de error por «duplicada» 

@@ -1,0 +1,46 @@
+=== E1-M. REGLAS CHECK/UNIQUE/FK en PostgreSQL real (las del schema.sql, sin endurecimiento extra)
+M1) menor de edad (12) SIN acudiente:
+ERROR:  new row for relation "estudiantes" violates check constraint "estudiantes_acudiente_menores"
+DETAIL:  Failing row contains (11, Menor Sin Acudiente, 12, 1, null, null, null, al_dia, t, 2026-10-31 15:45:35.11516+00, 2026-10-31 15:45:35.11516+00).
+M2) menor de edad con acudiente de solo espacios:
+ERROR:  new row for relation "estudiantes" violates check constraint "estudiantes_acudiente_menores"
+DETAIL:  Failing row contains (12, Menor Espacios, 12, 1, null,    ,    , al_dia, t, 2026-10-31 15:45:35.116271+00, 2026-10-31 15:45:35.116271+00).
+M3) estado_pago = constructor (el valor que el navegador deja pasar):
+ERROR:  new row for relation "estudiantes" violates check constraint "estudiantes_estado_pago_valido"
+DETAIL:  Failing row contains (13, Pago Raro, 30, 1, null, null, null, constructor, t, 2026-10-31 15:45:35.116525+00, 2026-10-31 15:45:35.116525+00).
+M4) edad 2 (fuera de 3..99; con acudiente, para que sea LA EDAD lo que falle):
+ERROR:  new row for relation "estudiantes" violates check constraint "estudiantes_edad_valida"
+DETAIL:  Failing row contains (14, Edad Rara, 2, 1, null, Acudiente, 300 000 0000, al_dia, t, 2026-10-31 15:45:35.116691+00, 2026-10-31 15:45:35.116691+00).
+M5) disciplina que no existe (FK):
+ERROR:  insert or update on table "estudiantes" violates foreign key constraint "estudiantes_disciplina_id_fkey"
+DETAIL:  Key (disciplina_id)=(9999) is not present in table "disciplinas".
+M6) dos asistencias del mismo estudiante el mismo día (UNIQUE):
+ERROR:  duplicate key value violates unique constraint "asistencias_un_registro_por_dia"
+DETAIL:  Key (estudiante_id, fecha)=(1, 2026-01-05) already exists.
+M7) borrar un estudiante: ¿qué pasa con su asistencia? (ON DELETE CASCADE)
+asistencias de ese estudiante antes: 1
+asistencias de ese estudiante después: 0
+asistencias que quedan en total (sin huérfanas): 0
+
+=== E1-N. POLÍTICAS POR ROL (rls_por_rol.sql) con un auth.jwt() imitando el de Supabase
+N0) ANTES de aplicar rls_por_rol.sql (política "todo autenticado" vigente): un usuario SIN rol...
+     ve 10 estudiantes
+N1) política vieja SIN borrar, para mostrar la trampa (se vuelve a crear a propósito):
+     usuario SIN rol, con la política vieja todavía creada: ve 10 estudiantes (¡se suman con OR!)
+N2) ADMIN (app_metadata.rol = admin):
+     ve 10 estudiantes
+     edita: 1 fila(s)
+     borra asistencias: 1 fila(s)
+N3) PROFESOR (app_metadata.rol = profesor):
+     ve 10 estudiantes y 1 asistencias
+     intenta editar estudiantes: 0 fila(s) cambiadas (bloqueado)
+     intenta borrar asistencias: 0 fila(s) borradas (bloqueado)
+     corrige una asistencia: 1 fila(s)
+intenta CREAR un estudiante:
+ERROR:  new row violates row-level security policy for table "estudiantes"
+N4) usuario con sesión pero SIN rol:
+     ve 0 estudiantes
+N5) TRAMPA: el usuario se pone rol=admin en SU user_metadata (que sí puede editar):
+     ve 0 estudiantes (la política solo mira app_metadata)
+N6) anónimo (anon key, sin sesión):
+ERROR:  permission denied for table estudiantes
