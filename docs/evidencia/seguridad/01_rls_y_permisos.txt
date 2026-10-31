@@ -1,0 +1,50 @@
+=== E1-A. ESTADO SEGURO (schema.sql tal cual): rol anónimo con la anon key, sin sesión
+     [anon] ERROR:  permission denied for table estudiantes 
+     [anon] ERROR:  permission denied for table disciplinas 
+     [anon] ERROR:  permission denied for table estudiantes 
+     (authenticated, con sesión)
+     [authenticated] 10 
+
+=== E1-B. EL ERROR CLÁSICO: tabla nueva en 'public' SIN RLS (los permisos por defecto de Supabase la dejan abierta)
+     RLS activo en prueba_sin_rls: f
+     [anon] secreto 1 secreto 2 
+   → se activa RLS pero SIN políticas:
+     [anon] 0 
+     [anon] ERROR:  permission denied for sequence prueba_sin_rls_id_seq 
+
+=== E1-C. SEGUNDO CANDADO (los GRANT/REVOKE de schema.sql): ¿qué pasa si alguien APAGA RLS en 'estudiantes'?
+     RLS apagado en estudiantes; anon sigue sin permisos de tabla (revoke):
+     [anon] ERROR:  permission denied for table estudiantes 
+   → peor caso: además le devuelven el permiso a anon (como hace Supabase por defecto en tablas nuevas):
+     [anon] 10 
+   → se vuelve a activar RLS (sin política para anon) y se quita el permiso:
+     [anon] ERROR:  permission denied for table estudiantes 
+
+=== E1-D. service_role (clave 'secret'): se salta RLS aunque no tenga política
+     [service_role] 10 
+     [service_role] Isabella Rojas Peña|300 000 0005 Sofía Martínez León|300 000 0008 
+
+=== E1-E. MODO SIN LOGIN (modo_sin_login.sql): el rol anónimo puede TODO
+psql:supabase/modo_sin_login.sql:42: NOTICE:  policy "Anónimos gestionan disciplinas" for relation "public.disciplinas" does not exist, skipping
+psql:supabase/modo_sin_login.sql:43: NOTICE:  policy "Anónimos gestionan estudiantes" for relation "public.estudiantes" does not exist, skipping
+psql:supabase/modo_sin_login.sql:44: NOTICE:  policy "Anónimos gestionan asistencias" for relation "public.asistencias" does not exist, skipping
+     [anon] 10 
+     [anon] Isabella Rojas Peña|300 000 0005 Sofía Martínez León|300 000 0008 
+     [anon] vencido 
+     [anon] 
+     [anon] ERROR:  aggregate functions are not allowed in RETURNING LINE 1: delete from estudiantes returning count(*) 
+   → cerrado de nuevo (modo_con_login.sql) y datos recargados:
+     [anon] ERROR:  permission denied for table estudiantes 
+
+=== E1-F. 'authenticated' es UN SOLO ROL para todos los usuarios con sesión (política using(true))
+     Dos usuarios distintos (A y B) usan el mismo rol → ven y cambian lo mismo.
+     [authenticated] 10 
+=== E1-B (repetida). RLS activado, SIN políticas: el INSERT de anon ahora falla por RLS (tabla sin secuencias)
+     [anon] 0 
+     [anon] ERROR:  new row violates row-level security policy for table "prueba2" 
+
+=== E1-E (repetida). MODO SIN LOGIN: el rol anónimo puede incluso BORRAR TODO (sin WHERE)
+     antes: 10 estudiantes
+     [anon] anon borró 10 estudiantes 
+     después: 0 estudiantes, 0 asistencias (el CASCADE también se llevó la asistencia)
+     (restaurado: cerrado de nuevo y seed recargado → 10 estudiantes)

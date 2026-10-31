@@ -1,0 +1,41 @@
+{
+  "nodos": {
+    "vainilla": 19,
+    "react": 19
+  },
+  "filas": [
+    {
+      "n": 100,
+      "filas_dibujadas_S1": 100,
+      "vainilla_S1": 13.8,
+      "react_S1": 15.2,
+      "vainilla_S2": 192.6,
+      "react_S2": 13.6,
+      "vainilla_S3_redibujar_todo": 14,
+      "vainilla_S3_una_fila": 0.8,
+      "react_S3": 11.6
+    },
+    {
+      "n": 300,
+      "filas_dibujadas_S1": 300,
+      "vainilla_S1": 41,
+      "react_S1": 43.8,
+      "vainilla_S2": 619.7,
+      "react_S2": 38,
+      "vainilla_S3_redibujar_todo": 41.9,
+      "vainilla_S3_una_fila": 1.9,
+      "react_S3": 24.8
+    },
+    {
+      "n": 1000,
+      "filas_dibujadas_S1": 1000,
+      "vainilla_S1": 213,
+      "react_S1": 157.6,
+      "vainilla_S2": 2070.6,
+      "react_S2": 161.9,
+      "vainilla_S3_redibujar_todo": 205.8,
+      "vainilla_S3_una_fila": 13.9,
+      "react_S3": 120.3
+    }
+  ]
+}

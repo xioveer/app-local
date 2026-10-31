@@ -1,0 +1,25 @@
+
+E4-A. <TarjetaDashboard/> frente a las tarjetas de vainilla del Dashboard
+    vainilla: ["Estudiantes activos 9","Pagos al día 5","Pagos pendientes 2","Pagos vencidos 2"]
+    React:    ["Estudiantes activos 9","Pagos al día 5","Pagos pendientes 2","Pagos vencidos 2"]
+  ✔ las 4 tarjetas muestran exactamente lo mismo (título y cifra)
+  ✔ sin datos (metricas = null) las 4 tarjetas muestran "—", igual que el Dashboard recién abierto
+  ✔ y el punto de color usa las mismas clases de Tailwind
+
+E4-B. <TablaEstudiantes/> frente a la tabla de vainilla, con los mismos filtros
+  ✔ sin filtros (solo activos): 9 filas idénticas y mismo contador («Mostrando 9 de 9 estudiantes»)
+  ✔ texto "sofia" (sin tildes): 1 filas idénticas y mismo contador («Mostrando 1 de 9 estudiantes»)
+  ✔ texto "GÓMEZ" (mayúsculas y tilde): 1 filas idénticas y mismo contador («Mostrando 1 de 9 estudiantes»)
+  ✔ mostrar inactivos: 10 filas idénticas y mismo contador («Mostrando 10 de 10 estudiantes»)
+  ✔ disciplina Fútbol + texto "sa": 2 filas idénticas y mismo contador («Mostrando 2 de 9 estudiantes»)
+  ✔ inactivos + Danza folclórica: 3 filas idénticas y mismo contador («Mostrando 3 de 10 estudiantes»)
+  ✔ sin resultados ("zzzz"): mismo mensaje de "sin resultados"
+
+E4-C. <PanelDeEstudiantes/>: el estado (useState) y los eventos funcionan
+  ✔ empieza con 9 filas (solo activos)
+  ✔ al escribir "sofia" el estado cambia y la tabla se redibuja sola (1 fila)
+  ✔ al marcar "Mostrar inactivos" aparecen 10 filas
+  ✔ los botones avisan al "padre" con el estudiante correcto (editar y reactivar a Andrés)
+  ✔ sin errores de JavaScript ni advertencias de React en la consola
+
+RESULTADO: 15 correctas, 0 fallidas
