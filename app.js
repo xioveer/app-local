@@ -25,12 +25,7 @@
 // Se crea en crearClienteSupabase(), cuando ya sabemos que la configuración es válida.
 let clienteSupabase = null;
 
-// Nombre con el que el SDK guarda la sesión en el localStorage del navegador.
-// Lo fijamos nosotros para saber exactamente qué borrar al cerrar sesión.
-const CLAVE_DE_SESION = "academia-sesion";
-
-// Datos que la aplicación mantiene en memoria mientras hay una sesión iniciada.
-// Se vacían al cerrar sesión (ver limpiarDatosDeLaSesion).
+// Datos de la aplicación en memoria.
 // (La vista Asistencia, hecha con React, guarda sus propios datos dentro de su componente.)
 const estado = {
   vistaActual: "",             // nombre de la vista que se está mostrando ("dashboard", "asistencia"...)
@@ -58,20 +53,8 @@ function guardarReferenciasDelDOM() {
   elementos.mensajeConfirmacion = document.getElementById("mensaje-confirmacion");
   elementos.botonConfirmar = document.getElementById("boton-confirmar");
 
-  // Login
-  elementos.vistaLogin = document.getElementById("vista-login");
-  elementos.loginSubtitulo = document.getElementById("login-subtitulo");
-  elementos.avisoConfiguracion = document.getElementById("aviso-configuracion");
-  elementos.formularioLogin = document.getElementById("formulario-login");
-  elementos.campoCorreo = document.getElementById("login-correo");
-  elementos.campoContrasena = document.getElementById("login-contrasena");
-  elementos.botonLogin = document.getElementById("boton-login");
-
   // Aplicación principal
   elementos.appPrincipal = document.getElementById("app-principal");
-  elementos.usuarioCorreo = document.getElementById("usuario-correo");
-  elementos.botonCerrarSesion = document.getElementById("boton-cerrar-sesion");
-  elementos.avisoModoSinLogin = document.getElementById("aviso-modo-sin-login");
 
   // Disciplinas
   elementos.formularioDisciplina = document.getElementById("formulario-disciplina");
@@ -134,24 +117,10 @@ function configuracionEsValida() {
   );
 }
 
-// Indica si la aplicación pide iniciar sesión. Solo NO la pide cuando config.js dice
-// exactamente REQUIERE_INICIO_DE_SESION = false (modo sin inicio de sesión, temporal).
-// Si la línea no existe o tiene cualquier otro valor, se pide iniciar sesión (lo seguro).
-// "typeof" evita un error cuando config.js no tiene esa línea.
-function requiereInicioDeSesion() {
-  const modoSinLogin = typeof REQUIERE_INICIO_DE_SESION !== "undefined" && REQUIERE_INICIO_DE_SESION === false;
-  return !modoSinLogin;
-}
-
-// Crea el cliente de Supabase con los datos de config.js.
-// Sin inicio de sesión no se guarda ni se usa ninguna sesión: todas las peticiones
-// van con el rol anónimo (y la base de datos decide qué le permite).
+// Crea el cliente de Supabase. Las peticiones van con el rol anónimo.
 function crearClienteSupabase() {
-  const opciones = requiereInicioDeSesion()
-    ? { auth: { storageKey: CLAVE_DE_SESION } }
-    : { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
-
-  clienteSupabase = window.supabase.createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim(), opciones);
+  clienteSupabase = window.supabase.createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim(),
+    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
 }
 
 
@@ -227,10 +196,7 @@ function describirError(error) {
     return "Tu sesión expiró. Cierra sesión y vuelve a entrar.";
   }
   if (codigo === "42501") {
-    return requiereInicioDeSesion()
-      ? "No tienes permiso para hacer esto. Cierra sesión y vuelve a entrar."
-      : "La base de datos no permite el acceso sin iniciar sesión. Ejecuta supabase/modo_sin_login.sql " +
-        "en Supabase (o pon REQUIERE_INICIO_DE_SESION = true en config.js).";
+    return "La base de datos no permite el acceso. Ejecuta supabase/modo_sin_login.sql en Supabase.";
   }
   if (codigo === "23505") {
     return "Ya existe un registro con ese valor.";
@@ -286,182 +252,6 @@ function pedirConfirmacion({ titulo, mensaje, textoConfirmar }) {
   });
 }
 
-
-/* =====================================================================
-   3. AUTENTICACIÓN
-   ===================================================================== */
-
-// Revisa si el correo y la contraseña tienen un formato aceptable.
-// Devuelve un texto con el problema, o "" si todo está bien.
-function validarCredenciales(correo, contrasena) {
-  const formatoDeCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-  if (correo === "") {
-    return "Escribe tu correo electrónico.";
-  }
-  if (!formatoDeCorreo.test(correo)) {
-    return "El correo no tiene un formato válido (ejemplo: nombre@dominio.com).";
-  }
-  if (contrasena === "") {
-    return "Escribe tu contraseña.";
-  }
-  return "";
-}
-
-// Vacía los datos que la app tenía en memoria y en pantalla (lista de estudiantes,
-// formularios, búsquedas...). Se usa al volver al login para que, en un computador
-// compartido, nadie vea datos de la sesión anterior.
-function limpiarDatosDeLaSesion() {
-  estado.vistaActual = "";
-  estado.disciplinas = [];
-  estado.estudiantes = [];
-  estado.disciplinasCargadas = false;
-  estado.estudiantesCargados = false;
-  estado.idEstudianteEnEdicion = null;
-
-  elementos.campoBusqueda.value = "";
-  elementos.filtroInactivos.checked = false;
-  elementos.formularioDisciplina.reset();
-  cerrarFormularioEstudiante();
-  cerrarVistaAsistencia();
-  limpiarDashboardEnPantalla();
-
-  llenarSelectsDeDisciplinas(); // sin disciplinas en "estado", los selects quedan vacíos
-  dibujarListaDeDisciplinas();
-  dibujarTablaEstudiantes();
-}
-
-// Muestra solo la pantalla de login y oculta la aplicación.
-function mostrarLogin() {
-  limpiarDatosDeLaSesion();
-  elementos.appPrincipal.classList.add("hidden");
-  elementos.vistaLogin.classList.remove("hidden");
-  elementos.campoContrasena.value = "";
-}
-
-// Muestra la aplicación (oculta el login) y empieza en el Dashboard.
-function mostrarAplicacion(usuario) {
-  elementos.vistaLogin.classList.add("hidden");
-  elementos.appPrincipal.classList.remove("hidden");
-  elementos.usuarioCorreo.textContent = usuario.email;
-  mostrarVista("dashboard");
-}
-
-// Muestra un aviso amarillo en el login cuando falta algo en la configuración,
-// y bloquea el botón porque sin configuración no se puede iniciar sesión.
-function mostrarProblemaDeConfiguracion(texto) {
-  elementos.avisoConfiguracion.textContent = texto;
-  elementos.avisoConfiguracion.classList.remove("hidden");
-  elementos.botonLogin.disabled = true;
-
-  // En el modo sin inicio de sesión no hay nada que iniciar: solo se muestra el aviso.
-  if (!requiereInicioDeSesion()) {
-    elementos.formularioLogin.classList.add("hidden");
-    elementos.loginSubtitulo.textContent = "Configuración incompleta";
-  }
-}
-
-// Modo sin inicio de sesión: entra directo a la aplicación, sin pedir correo ni contraseña.
-// Se muestra el aviso permanente y se oculta el botón de cerrar sesión (no hay sesión).
-function entrarSinInicioDeSesion() {
-  elementos.avisoModoSinLogin.classList.remove("hidden");
-  elementos.botonCerrarSesion.classList.add("hidden");
-  mostrarAplicacion({ email: "Sin inicio de sesión" });
-}
-
-// Pregunta a Supabase si ya hay una sesión guardada en el navegador
-// y muestra la pantalla que corresponda.
-async function revisarSesion() {
-  mostrarCargando("Revisando sesión...");
-  try {
-    const { data, error } = await clienteSupabase.auth.getSession();
-    if (error) throw error;
-
-    if (data.session) {
-      mostrarAplicacion(data.session.user);
-    } else {
-      mostrarLogin();
-    }
-  } catch (error) {
-    mostrarLogin();
-    mostrarAviso(describirError(error), "error");
-  } finally {
-    ocultarCargando();
-  }
-}
-
-// Se ejecuta al enviar el formulario de login: valida, inicia sesión y entra a la app.
-async function iniciarSesion(evento) {
-  evento.preventDefault(); // evita que el formulario recargue la página
-
-  const correo = elementos.campoCorreo.value.trim();
-  const contrasena = elementos.campoContrasena.value;
-
-  const problema = validarCredenciales(correo, contrasena);
-  if (problema !== "") {
-    mostrarAviso(problema, "error");
-    return;
-  }
-
-  mostrarCargando("Iniciando sesión...");
-  try {
-    const { data, error } = await clienteSupabase.auth.signInWithPassword({
-      email: correo,
-      password: contrasena,
-    });
-    if (error) throw error;
-
-    mostrarAplicacion(data.user);
-  } catch (error) {
-    mostrarAviso(describirError(error), "error");
-  } finally {
-    ocultarCargando();
-  }
-}
-
-// Borra la sesión guardada en este navegador. Es la red de seguridad de cerrarSesion():
-// así la sesión desaparece aunque el SDK no haya podido hacerlo (por ejemplo, sin Internet).
-function borrarSesionDelNavegador() {
-  try {
-    localStorage.removeItem(CLAVE_DE_SESION);
-  } catch (error) {
-    // Si el navegador bloquea el almacenamiento no hay nada guardado que borrar.
-  }
-}
-
-// Cierra la sesión SIEMPRE en este navegador, aunque falle la red (importante en computadores compartidos).
-// scope "local" = solo termina la sesión de este navegador (no las de otros dispositivos).
-// Si no se pudo avisar al servidor, la persona igual sale al login y ve un aviso.
-async function cerrarSesion() {
-  mostrarCargando("Cerrando sesión...");
-  let avisoDeError = "";
-  try {
-    const { error } = await clienteSupabase.auth.signOut({ scope: "local" });
-    if (error) throw error;
-  } catch (error) {
-    avisoDeError = "La sesión se cerró en este navegador, pero no se pudo avisar a Supabase. " + describirError(error);
-  } finally {
-    // Pase lo que pase con el servidor, esto siempre se ejecuta.
-    borrarSesionDelNavegador();
-    mostrarLogin();
-    ocultarCargando();
-  }
-
-  if (avisoDeError !== "") {
-    mostrarAviso(avisoDeError, "error");
-  }
-}
-
-// Avisa a la app cuando la sesión se cierra por otro motivo
-// (por ejemplo, se cerró en otra pestaña o la sesión caducó).
-// Aquí solo tocamos la pantalla; no hacemos consultas a Supabase dentro de este aviso.
-function vigilarCierreDeSesion() {
-  clienteSupabase.auth.onAuthStateChange((evento) => {
-    if (evento === "SIGNED_OUT") {
-      mostrarLogin();
-    }
-  });
-}
 
 
 /* =====================================================================
@@ -1359,10 +1149,6 @@ async function navegarAVista(nombreVista) {
 
 // Conecta cada botón y formulario con la función que debe ejecutar.
 function conectarEventos() {
-  // Login y sesión
-  elementos.formularioLogin.addEventListener("submit", iniciarSesion);
-  elementos.botonCerrarSesion.addEventListener("click", cerrarSesion);
-
   // Menú de navegación
   document.querySelectorAll("[data-ir-a]").forEach((boton) => {
     boton.addEventListener("click", () => navegarAVista(boton.dataset.irA));
@@ -1388,37 +1174,24 @@ function conectarEventos() {
   elementos.botonActualizarDashboard.addEventListener("click", actualizarDashboard);
 }
 
-// Punto de entrada: prepara la página y decide si mostrar el login o la aplicación
-// (o entrar directo, si config.js desactiva el inicio de sesión).
+// Punto de entrada: prepara la página y arranca directamente en el Dashboard.
 async function iniciarAplicacion() {
   guardarReferenciasDelDOM();
+  elementos.appPrincipal.classList.remove("hidden");
   conectarEventos();
 
   if (!sdkDeSupabaseCargado()) {
-    mostrarLogin();
-    mostrarProblemaDeConfiguracion(
-      "No se pudo cargar la librería de Supabase. Revisa tu conexión a Internet y recarga la página."
-    );
+    mostrarAviso("No se pudo cargar la librería de Supabase. Revisa tu conexión a Internet y recarga la página.", "error");
     return;
   }
 
   if (!configuracionEsValida()) {
-    mostrarLogin();
-    mostrarProblemaDeConfiguracion(
-      "Falta configurar Supabase. Copia config.example.js como config.js y escribe tu SUPABASE_URL y tu SUPABASE_ANON_KEY."
-    );
+    mostrarAviso("Falta configurar Supabase. Copia config.example.js como config.js y escribe tu SUPABASE_URL y tu SUPABASE_ANON_KEY.", "error");
     return;
   }
 
   crearClienteSupabase();
-
-  if (!requiereInicioDeSesion()) {
-    entrarSinInicioDeSesion();
-    return;
-  }
-
-  vigilarCierreDeSesion();
-  await revisarSesion();
+  mostrarVista("dashboard");
 }
 
 // Cuando el HTML termina de cargar, arranca la aplicación.

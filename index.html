@@ -63,48 +63,6 @@
   </dialog>
 
 
-  <!-- =================================================================
-       VISTA: LOGIN
-       Es lo único que se ve si no hay sesión iniciada.
-       Empieza oculta (hidden); app.js decide si mostrarla.
-       ================================================================= -->
-  <section id="vista-login" class="hidden">
-    <div class="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center px-4 py-10">
-
-      <div class="mb-6 text-center">
-        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 text-2xl text-white shadow-lg shadow-indigo-200" aria-hidden="true">🎓</div>
-        <h1 class="mt-4 text-2xl font-bold text-slate-900">Gestor de Academia</h1>
-        <p id="login-subtitulo" class="mt-1 text-sm text-slate-500">Inicia sesión para continuar</p>
-      </div>
-
-      <!-- Aviso de configuración: solo aparece si falta config.js o no cargó el SDK -->
-      <div id="aviso-configuracion" role="alert"
-           class="mb-4 hidden rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"></div>
-
-      <!-- novalidate: la validación la hacemos nosotros en JavaScript (app.js) -->
-      <form id="formulario-login" novalidate
-            class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div>
-          <label for="login-correo" class="block text-sm font-medium text-slate-700">Correo electrónico</label>
-          <input id="login-correo" type="email" autocomplete="username" placeholder="admin@academia.com"
-                 class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
-        </div>
-
-        <div>
-          <label for="login-contrasena" class="block text-sm font-medium text-slate-700">Contraseña</label>
-          <input id="login-contrasena" type="password" autocomplete="current-password"
-                 class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
-        </div>
-
-        <button id="boton-login" type="submit"
-                class="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
-          Iniciar sesión
-        </button>
-      </form>
-
-    </div>
-  </section>
-
 
   <!-- =================================================================
        APLICACIÓN PRINCIPAL
@@ -121,13 +79,6 @@
           <span class="truncate text-lg font-bold text-slate-900">Gestor de Academia</span>
         </div>
 
-        <div class="flex items-center gap-3">
-          <span id="usuario-correo" class="hidden max-w-[14rem] truncate text-sm text-slate-500 sm:block"></span>
-          <button id="boton-cerrar-sesion" type="button"
-                  class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            Cerrar sesión
-          </button>
-        </div>
       </div>
 
       <!-- Menú de navegación: cada botón lleva data-ir-a con el nombre de su vista.
@@ -153,12 +104,6 @@
       </nav>
     </header>
 
-    <!-- Aviso permanente del MODO SIN INICIO DE SESIÓN (solo se muestra en ese modo; ver config.js) -->
-    <div id="aviso-modo-sin-login" role="note"
-         class="hidden border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs font-medium text-amber-900">
-      Modo sin inicio de sesión (temporal): cualquier persona con la dirección de esta página puede ver y cambiar los datos.
-      Úsalo solo en tu computador y con datos de prueba.
-    </div>
 
     <!-- Contenido principal. Cada <section data-vista="..."> es una vista;
          app.js muestra solo una a la vez quitando/poniendo la clase "hidden". -->
