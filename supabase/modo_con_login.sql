@@ -1,14 +1,17 @@
 -- =====================================================================
--- modo_con_login.sql  ·  CIERRA la base de datos: vuelve a exigir inicio de sesión
+-- modo_con_login.sql  ·  CIERRA la base de datos al rol anónimo
 -- =====================================================================
 -- Deshace lo que hizo supabase/modo_sin_login.sql: el rol anónimo (sin sesión)
 -- deja de poder leer o escribir. Solo los usuarios con sesión iniciada
 -- (rol "authenticated") siguen teniendo acceso, como define schema.sql.
 --
+-- OJO: la aplicación actual no tiene inicio de sesión. Después de ejecutar este
+-- archivo los datos quedan guardados y protegidos, pero la aplicación mostrará
+-- «La base de datos no permite el acceso» hasta que vuelvas a ejecutar
+-- modo_sin_login.sql. Úsalo para cerrar la base al terminar una demostración.
+--
 -- CÓMO USARLO:
---   1. Supabase → SQL Editor → New query → pegar TODO este archivo → Run.
---   2. En tu config.js pon:  const REQUIERE_INICIO_DE_SESION = true;
---   3. Recarga la aplicación: vuelve a pedir correo y contraseña.
+--   Supabase → SQL Editor → New query → pegar TODO este archivo → Run.
 --
 -- Es seguro ejecutarlo varias veces, y también si nunca ejecutaste modo_sin_login.sql.
 -- No borra ningún dato.

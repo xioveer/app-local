@@ -11,23 +11,19 @@
 --   proyecto de Supabase puede ver y cambiar todos los datos (nombres, edades y
 --   teléfonos de acudientes incluidos).
 --
---   Úsalo SOLO:
---     · temporalmente (por ejemplo, mientras desarrollas o ensayas),
---     · en tu computador,
---     · con datos de PRUEBA (no con datos reales de estudiantes).
---   Y NO publiques la página en Internet mientras esté activo.
+--   La aplicación actual NO tiene inicio de sesión, así que necesita este script
+--   para funcionar. Por eso úsala SOLO con datos de PRUEBA (no con datos reales
+--   de estudiantes) y cierra la base cuando termines la demostración.
 --
 -- CÓMO USARLO:
 --   1. Ejecuta antes supabase/schema.sql (aquí se asume que las tablas ya existen).
 --   2. Supabase → SQL Editor → New query → pegar TODO este archivo → Run.
---   3. En tu config.js pon:  const REQUIERE_INICIO_DE_SESION = false;
---   4. Recarga la aplicación: entra directo, sin login.
+--   3. Recarga la aplicación.
 --
--- PARA VOLVER A LO SEGURO:
---   1. Ejecuta supabase/modo_con_login.sql
---   2. En tu config.js pon:  const REQUIERE_INICIO_DE_SESION = true;
---   (Volver a ejecutar schema.sql completo también cierra la base, pero se recomienda
---    usar modo_con_login.sql, que está hecho justo para eso.)
+-- PARA CERRAR LA BASE (por ejemplo, al terminar la demostración):
+--   Ejecuta supabase/modo_con_login.sql. Los datos se conservan, pero la aplicación
+--   deja de poder leerlos hasta que vuelvas a ejecutar este archivo.
+--   (Volver a ejecutar schema.sql completo también cierra la base.)
 --
 -- Es seguro ejecutarlo más de una vez. RLS sigue ACTIVADO; solo se agregan
 -- políticas para el rol "anon". Las restricciones (CHECK, UNIQUE, claves foráneas)

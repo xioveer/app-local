@@ -22,7 +22,10 @@
        html`<p>Hola ${nombre}</p>`
 
    El resto de la aplicación habla con esta vista a través de window.VistaAsistencia
-   (abrir, cerrar, tieneCambiosSinGuardar), al final de este archivo.
+   (abrir y tieneCambiosSinGuardar), al final de este archivo.
+
+   Las clases como "tarjeta", "campo", "boton" o "iniciales" son las clases propias
+   definidas en index.html (dentro de la etiqueta style).
    ===================================================================== */
 
 // Función que se ejecuta sola, para que los nombres de aquí no se mezclen con los de app.js.
@@ -64,18 +67,22 @@
   // Recibe sus datos por "props" y avisa con alCambiar cuando se mueve el interruptor.
   function FilaDeAsistencia({ estudiante, presente, tieneRegistro, alCambiar }) {
     const disciplina = estudiante.disciplinas ? estudiante.disciplinas.nombre : null;
-    const detalle = [disciplina, estudiante.categoria].filter(Boolean).join(" · ");
+    const detalle = [disciplina, estudiante.categoria].filter(Boolean).join(", ");
 
     // El interruptor es un checkbox escondido (sr-only) y dos <span> que dibujan el "riel" y la
     // "bolita". Con "peer", cuando el checkbox está marcado el riel se pone verde y la bolita se mueve.
+    // El círculo de iniciales solo se muestra en pantallas medianas o grandes (en celular no cabe).
     return html`
       <li className="flex items-center justify-between gap-3 px-4 py-3">
-        <div className="min-w-0">
-          <p data-texto="nombre" className="truncate font-medium text-slate-900">${estudiante.nombre_completo}</p>
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
-            <span data-texto="detalle">${detalle || "—"}</span>
-            ${!tieneRegistro && html`<span data-texto="sin-registro" className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-800">Sin registrar</span>`}
-          </p>
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="iniciales hidden sm:flex" aria-hidden="true">${obtenerIniciales(estudiante.nombre_completo)}</span>
+          <div className="min-w-0">
+            <p data-texto="nombre" className="truncate font-semibold text-slate-900">${estudiante.nombre_completo}</p>
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+              <span data-texto="detalle">${detalle || "—"}</span>
+              ${!tieneRegistro && html`<span data-texto="sin-registro" className="chip bg-orange-100 text-orange-800">Sin registrar</span>`}
+            </p>
+          </div>
         </div>
 
         <label className="relative inline-flex shrink-0 cursor-pointer items-center gap-3">
@@ -83,9 +90,9 @@
                  aria-label=${"Asistencia de " + estudiante.nombre_completo}
                  checked=${presente}
                  onChange=${(evento) => alCambiar(estudiante.id, evento.target.checked)} />
-          <span className="h-7 w-12 rounded-full bg-slate-300 transition-colors peer-checked:bg-emerald-500 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500 peer-focus-visible:ring-offset-2"></span>
+          <span className="h-7 w-12 rounded-full bg-slate-300 transition-colors peer-checked:bg-emerald-500 peer-focus-visible:ring-2 peer-focus-visible:ring-tinta peer-focus-visible:ring-offset-2"></span>
           <span className="pointer-events-none absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"></span>
-          <span data-texto="estado" className=${"w-16 text-sm font-medium " + (presente ? "text-emerald-700" : "text-slate-500")}>${presente ? "Presente" : "Ausente"}</span>
+          <span data-texto="estado" className=${"w-16 text-sm font-semibold " + (presente ? "text-emerald-700" : "text-slate-500")}>${presente ? "Presente" : "Ausente"}</span>
         </label>
       </li>
     `;
@@ -111,7 +118,7 @@
     const [cargada, setCargada] = useState(false);       // ¿ya se cargó bien la fecha?
     const [modificada, setModificada] = useState(false); // ¿hay interruptores movidos sin guardar?
 
-    // Para no actuar sobre una pantalla que ya se quitó (por ejemplo, si se cerró sesión).
+    // Para no actuar sobre una pantalla que ya se quitó (por ejemplo, si se volvió a abrir la vista).
     const montada = useRef(true);
 
     // Lo que se calcula a partir del estado. No se guarda: se recalcula en cada dibujo.
@@ -282,32 +289,35 @@
 
     /* --- Lo que se ve en pantalla --- */
 
-    const resumen = "Presentes: " + presentes + " · Ausentes: " + (visibles.length - presentes) + " · Total: " + visibles.length;
+    const ausentes = visibles.length - presentes;
     const mensajeSinEstudiantes = estudiantes.length === 0
       ? "No hay estudiantes activos. Agrégalos en la vista Estudiantes."
       : "No hay estudiantes activos en esta disciplina.";
 
+    // Clases de los números del resumen (se repiten tres veces).
+    const numero = "font-titulo text-xl font-bold text-white";
+
     return html`
       <div>
-        <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-end">
+        <div className="tarjeta mt-6 flex flex-col gap-3 p-5 sm:flex-row sm:items-end">
           <div>
-            <label htmlFor="campo-fecha-asistencia" className="block text-sm font-medium text-slate-700">Fecha</label>
-            <div className="mt-1 flex gap-2">
+            <label htmlFor="campo-fecha-asistencia" className="etiqueta">Fecha</label>
+            <div className="flex gap-2">
               <input id="campo-fecha-asistencia" type="date" min=${FECHA_MINIMA_DE_ASISTENCIA} max=${hoy}
                      value=${campoFecha}
                      onChange=${(evento) => cambiarFechaA(evento.target.value)}
-                     className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                     className="campo" />
               <button id="boton-fecha-hoy" type="button" onClick=${() => cambiarFechaA(fechaDeHoy())}
-                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                      className="boton boton-secundario">
                 Hoy
               </button>
             </div>
           </div>
           <div className="sm:w-64">
-            <label htmlFor="filtro-disciplina-asistencia" className="block text-sm font-medium text-slate-700">Disciplina</label>
+            <label htmlFor="filtro-disciplina-asistencia" className="etiqueta">Disciplina</label>
             <select id="filtro-disciplina-asistencia" value=${filtro}
                     onChange=${(evento) => cambiarDisciplinaA(evento.target.value)}
-                    className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                    className="campo">
               <option value="">Todas las disciplinas</option>
               ${disciplinas.map((disciplina) => html`<option key=${disciplina.id} value=${String(disciplina.id)}>${disciplina.nombre}</option>`)}
             </select>
@@ -315,12 +325,12 @@
         </div>
 
         ${cargada && visibles.length === 0 && html`
-          <p id="mensaje-sin-asistencia" className="mt-4 rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">${mensajeSinEstudiantes}</p>
+          <p id="mensaje-sin-asistencia" className="vacio mt-4">${mensajeSinEstudiantes}</p>
         `}
 
         ${visibles.length > 0 && html`
           <div id="contenedor-asistencia" className="mt-4">
-            <ul id="lista-asistencia" className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <ul id="lista-asistencia" className="tarjeta divide-y divide-slate-100 overflow-hidden">
               ${visibles.map((estudiante) => html`
                 <${FilaDeAsistencia} key=${estudiante.id} estudiante=${estudiante}
                                      presente=${marcas[estudiante.id]}
@@ -329,13 +339,17 @@
               `)}
             </ul>
 
-            <div className="sticky bottom-0 z-10 -mx-4 mt-4 flex items-center justify-between gap-3 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border sm:shadow-sm">
+            <div className="sticky bottom-0 z-10 -mx-4 mt-4 flex items-center justify-between gap-3 bg-tinta px-4 py-3 text-white sm:bottom-4 sm:mx-0 sm:rounded-2xl sm:px-5">
               <div className="min-w-0">
-                <p id="resumen-asistencia" className="text-sm font-medium text-slate-700">${resumen}</p>
-                ${modificada && html`<p id="aviso-sin-guardar" className="text-xs font-medium text-amber-600">Cambios sin guardar</p>`}
+                <p id="resumen-asistencia" className="flex flex-wrap items-baseline gap-x-4 text-sm text-blue-100">
+                  <span><span className=${numero}>${presentes}</span> presentes</span>
+                  <span><span className=${numero}>${ausentes}</span> ausentes</span>
+                  <span className="hidden sm:inline"><span className=${numero}>${visibles.length}</span> en total</span>
+                </p>
+                ${modificada && html`<p id="aviso-sin-guardar" className="text-xs font-semibold text-sol">Cambios sin guardar</p>`}
               </div>
               <button id="boton-guardar-asistencia" type="button" onClick=${guardar}
-                      className="shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                      className="boton boton-sol shrink-0">
                 Guardar asistencia
               </button>
             </div>
@@ -351,19 +365,13 @@
   const raiz = ReactDOM.createRoot(document.getElementById("raiz-asistencia"));
   let numeroDeAperturas = 0;
 
-  // app.js usa estas tres funciones (ver "El puente con React" en la sección 6 de app.js).
+  // app.js usa estas dos funciones (ver "El puente con React" en la sección 5 de app.js).
   window.VistaAsistencia = {
     // Muestra la vista desde cero. Cambiar la "key" hace que React cree una vista NUEVA
     // (con el estado vacío) en vez de reutilizar la anterior.
     abrir() {
       numeroDeAperturas++;
       ReactDOM.flushSync(() => raiz.render(html`<${VistaDeAsistencia} key=${numeroDeAperturas} />`));
-    },
-
-    // Quita la vista de la pantalla (y con ella todos sus datos).
-    cerrar() {
-      hayCambiosSinGuardar = false;
-      ReactDOM.flushSync(() => raiz.render(null));
     },
 
     // ¿Hay interruptores movidos sin guardar?

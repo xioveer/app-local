@@ -7,7 +7,11 @@
 --   Si algún paso falla, el SQL Editor de Supabase deshace TODO el script (lo envía
 --   como una sola consulta), así que nunca queda a medias.
 --
--- ANTES DE USAR LA APP (importante para la seguridad):
+-- OJO: este archivo deja la base CERRADA para quien no inicia sesión. La aplicación
+-- actual no tiene inicio de sesión, así que después de este archivo hay que ejecutar
+-- supabase/modo_sin_login.sql (lee antes su advertencia).
+--
+-- SI ALGÚN DÍA SE VUELVE A PONER EL INICIO DE SESIÓN (importante para la seguridad):
 --   1. Authentication → Sign In / Providers → desactivar
 --      "Allow new users to sign up".
 --      Las políticas de este archivo dejan entrar a CUALQUIER usuario

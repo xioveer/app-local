@@ -6,14 +6,13 @@
    Secciones:
      1. CONFIGURACIÓN   → cliente de Supabase, estado y referencias al HTML
      2. UTILIDADES      → avisos, indicador de carga, errores, confirmación
-     3. AUTENTICACIÓN   → login, cierre de sesión, revisar sesión
-     4. DISCIPLINAS     → listar y agregar disciplinas
-     5. ESTUDIANTES     → tabla, buscador, filtros, formulario (crear/editar),
+     3. DISCIPLINAS     → listar y agregar disciplinas
+     4. ESTUDIANTES     → tabla, buscador, filtros, formulario (crear/editar),
                           desactivar y reactivar
-     6. ASISTENCIA      → consultar y guardar (upsert) + puente con la vista hecha en React
-     7. DASHBOARD       → métricas: estudiantes, pagos y asistencia de hoy
-     8. NAVEGACIÓN      → mostrar una vista y ocultar las demás
-     9. INICIO          → arranque de la aplicación
+     5. ASISTENCIA      → consultar y guardar (upsert) + puente con la vista hecha en React
+     6. DASHBOARD       → métricas: estudiantes, pagos y asistencia de hoy
+     7. NAVEGACIÓN      → mostrar una vista y ocultar las demás
+     8. INICIO          → arranque de la aplicación
    ===================================================================== */
 
 
@@ -21,11 +20,11 @@
    1. CONFIGURACIÓN
    ===================================================================== */
 
-// Cliente de Supabase: con él hablamos con la base de datos y la autenticación.
-// Se crea en crearClienteSupabase(), cuando ya sabemos que la configuración es válida.
+// Cliente de Supabase: con él hablamos con la base de datos.
+// Se crea en crearClienteSupabase(), cuando ya sabemos que los datos de conexión están escritos.
 let clienteSupabase = null;
 
-// Datos de la aplicación en memoria.
+// Datos que la aplicación guarda en memoria mientras está abierta.
 // (La vista Asistencia, hecha con React, guarda sus propios datos dentro de su componente.)
 const estado = {
   vistaActual: "",             // nombre de la vista que se está mostrando ("dashboard", "asistencia"...)
@@ -53,8 +52,11 @@ function guardarReferenciasDelDOM() {
   elementos.mensajeConfirmacion = document.getElementById("mensaje-confirmacion");
   elementos.botonConfirmar = document.getElementById("boton-confirmar");
 
-  // Aplicación principal
+  // Aplicación principal y pantalla de problema al empezar
   elementos.appPrincipal = document.getElementById("app-principal");
+  elementos.fechaEncabezado = document.getElementById("fecha-encabezado");
+  elementos.pantallaProblema = document.getElementById("pantalla-problema");
+  elementos.textoProblema = document.getElementById("texto-problema");
 
   // Disciplinas
   elementos.formularioDisciplina = document.getElementById("formulario-disciplina");
@@ -89,6 +91,9 @@ function guardarReferenciasDelDOM() {
   elementos.dashAlDia = document.getElementById("dash-al-dia");
   elementos.dashPendientes = document.getElementById("dash-pendientes");
   elementos.dashVencidos = document.getElementById("dash-vencidos");
+  elementos.dashTramoAlDia = document.getElementById("dash-tramo-al-dia");
+  elementos.dashTramoPendientes = document.getElementById("dash-tramo-pendientes");
+  elementos.dashTramoVencidos = document.getElementById("dash-tramo-vencidos");
   elementos.dashFecha = document.getElementById("dash-fecha");
   elementos.dashAsistenciaConDatos = document.getElementById("dash-asistencia-con-datos");
   elementos.dashAsistenciaSinDatos = document.getElementById("dash-asistencia-sin-datos");
@@ -108,8 +113,8 @@ function sdkDeSupabaseCargado() {
   return typeof window.supabase !== "undefined" && typeof window.supabase.createClient === "function";
 }
 
-// Indica si config.js existe y tiene la URL y la clave escritas.
-// "typeof" evita un error cuando config.js no existe y las variables no están definidas.
+// Indica si conexion.js existe y tiene la URL y la clave escritas.
+// "typeof" evita un error cuando el archivo no cargó y las variables no están definidas.
 function configuracionEsValida() {
   return (
     typeof SUPABASE_URL === "string" && SUPABASE_URL.trim() !== "" &&
@@ -117,10 +122,12 @@ function configuracionEsValida() {
   );
 }
 
-// Crea el cliente de Supabase. Las peticiones van con el rol anónimo.
+// Crea el cliente de Supabase con los datos de conexion.js.
+// La aplicación no tiene inicio de sesión, así que le pedimos al SDK que no guarde ni busque
+// ninguna sesión: todas las peticiones van con el rol anónimo.
 function crearClienteSupabase() {
-  clienteSupabase = window.supabase.createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim(),
-    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+  const opciones = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
+  clienteSupabase = window.supabase.createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim(), opciones);
 }
 
 
@@ -141,11 +148,11 @@ function mostrarAviso(mensaje, tipo = "info") {
   const colores = {
     exito: "bg-emerald-600 text-white",
     error: "bg-rose-600 text-white",
-    info: "bg-slate-800 text-white",
+    info: "bg-tinta text-white",
   };
 
   const aviso = document.createElement("div");
-  aviso.className = "pointer-events-auto rounded-lg px-4 py-3 text-sm font-medium shadow-lg " + (colores[tipo] || colores.info);
+  aviso.className = "pointer-events-auto rounded-xl px-4 py-3 text-sm font-medium shadow-lg " + (colores[tipo] || colores.info);
   aviso.setAttribute("role", tipo === "error" ? "alert" : "status");
   aviso.textContent = mensaje;
   elementos.contenedorAvisos.appendChild(aviso);
@@ -180,23 +187,15 @@ function describirError(error) {
   const mensaje = error && error.message ? error.message : "";
   const codigo = error && error.code ? error.code : "";
 
-  if (/invalid login credentials/i.test(mensaje)) {
-    return "Correo o contraseña incorrectos.";
-  }
-  if (/email not confirmed/i.test(mensaje)) {
-    return "Este usuario aún no tiene el correo confirmado en Supabase.";
-  }
   if (/failed to fetch|networkerror|network request failed|fetch failed/i.test(mensaje)) {
-    return "No se pudo conectar con Supabase. Revisa tu conexión a Internet y los datos de config.js.";
+    return "No se pudo conectar con Supabase. Revisa tu conexión a Internet. " +
+      "Si sigue fallando, puede que el proyecto esté en pausa: entra a supabase.com y reactívalo.";
   }
   if (/estudiantes_acudiente_menores/.test(mensaje)) {
     return "Los estudiantes menores de " + EDAD_DE_MAYORIA + " años necesitan nombre y teléfono del acudiente.";
   }
-  if (/jwt expired/i.test(mensaje) || codigo === "PGRST301") {
-    return "Tu sesión expiró. Cierra sesión y vuelve a entrar.";
-  }
   if (codigo === "42501") {
-    return "La base de datos no permite el acceso. Ejecuta supabase/modo_sin_login.sql en Supabase.";
+    return "La base de datos no permite el acceso. Ejecuta supabase/modo_sin_login.sql en el SQL Editor de Supabase.";
   }
   if (codigo === "23505") {
     return "Ya existe un registro con ese valor.";
@@ -252,10 +251,17 @@ function pedirConfirmacion({ titulo, mensaje, textoConfirmar }) {
   });
 }
 
+// Devuelve las iniciales de un nombre para el círculo de la lista: "Santiago Pérez Mora" → "SP".
+function obtenerIniciales(nombre) {
+  const palabras = nombre.trim().split(/\s+/);
+  const primera = palabras[0].charAt(0);
+  const segunda = palabras.length > 1 ? palabras[1].charAt(0) : "";
+  return (primera + segunda).toUpperCase();
+}
 
 
 /* =====================================================================
-   4. DISCIPLINAS
+   3. DISCIPLINAS
    ===================================================================== */
 
 // Crea un <option> para un <select> (usa textContent: el nombre nunca se interpreta como HTML).
@@ -297,7 +303,9 @@ function dibujarListaDeDisciplinas() {
 
   estado.disciplinas.forEach((disciplina) => {
     const elemento = document.createElement("li");
-    elemento.className = "rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-sm";
+    // Las clases "before:" dibujan una rayita amarilla antes del nombre (sin crear otro elemento).
+    elemento.className = "tarjeta flex items-center gap-3 px-4 py-3 font-semibold text-tinta " +
+      "before:h-6 before:w-1.5 before:rounded-full before:bg-sol";
     elemento.textContent = disciplina.nombre;
     elementos.listaDisciplinas.appendChild(elemento);
   });
@@ -393,13 +401,13 @@ async function agregarDisciplina(evento) {
 
 
 /* =====================================================================
-   5. ESTUDIANTES
+   4. ESTUDIANTES
    ===================================================================== */
 
 // Texto y colores de la etiqueta de cada estado de pago.
 const ESTILOS_DE_PAGO = {
   al_dia: { texto: "Al día", clases: "bg-emerald-100 text-emerald-800" },
-  pendiente: { texto: "Pendiente", clases: "bg-amber-100 text-amber-800" },
+  pendiente: { texto: "Pendiente", clases: "bg-orange-100 text-orange-800" },
   vencido: { texto: "Vencido", clases: "bg-rose-100 text-rose-800" },
 };
 const CLASES_DE_PAGO_INACTIVO = "bg-slate-200 text-slate-500";
@@ -462,22 +470,21 @@ function ponerTextoEnFila(fila, campo, texto) {
   fila.querySelector('[data-texto="' + campo + '"]').textContent = texto;
 }
 
-// Arma el texto del acudiente: "Nombre · Teléfono", o solo lo que exista, o "—".
-function describirAcudiente(estudiante) {
-  const partes = [estudiante.acudiente_nombre, estudiante.acudiente_telefono].filter(Boolean);
-  return partes.length > 0 ? partes.join(" · ") : "—";
-}
-
 // Crea la fila de la tabla para un estudiante, copiando la plantilla del HTML.
 function crearFilaDeEstudiante(estudiante) {
   const fila = elementos.plantillaFilaEstudiante.content.firstElementChild.cloneNode(true);
   const estaInactivo = !estudiante.activo;
 
+  ponerTextoEnFila(fila, "iniciales", obtenerIniciales(estudiante.nombre_completo));
   ponerTextoEnFila(fila, "nombre", estudiante.nombre_completo);
   ponerTextoEnFila(fila, "edad", estudiante.edad + " años");
   ponerTextoEnFila(fila, "disciplina", estudiante.disciplinas ? estudiante.disciplinas.nombre : "—");
   ponerTextoEnFila(fila, "categoria", estudiante.categoria || "—");
-  ponerTextoEnFila(fila, "acudiente", describirAcudiente(estudiante));
+
+  // Acudiente en dos renglones: nombre y teléfono. Si no hay ninguno de los dos, una raya.
+  const tieneAcudiente = Boolean(estudiante.acudiente_nombre || estudiante.acudiente_telefono);
+  ponerTextoEnFila(fila, "acudiente", tieneAcudiente ? (estudiante.acudiente_nombre || "") : "—");
+  ponerTextoEnFila(fila, "telefono-acudiente", estudiante.acudiente_telefono || "");
 
   // Etiqueta del estado de pago (gris si el estudiante está inactivo)
   const estiloDePago = ESTILOS_DE_PAGO[estudiante.estado_pago];
@@ -521,7 +528,7 @@ function dibujarTablaEstudiantes() {
     : "Ningún estudiante coincide con la búsqueda o el filtro.";
 
   elementos.contadorEstudiantes.textContent = estado.estudiantesCargados
-    ? "Mostrando " + lista.length + " de " + totalSinFiltrar + " estudiantes"
+    ? "Mostrando " + lista.length + " de " + totalSinFiltrar
     : "";
 }
 
@@ -857,11 +864,11 @@ async function abrirVistaEstudiantes() {
 
 
 /* =====================================================================
-   6. ASISTENCIA
+   5. ASISTENCIA
    La pantalla (fecha, filtro, interruptores y botón de guardar) está hecha con REACT
    en el archivo asistencia-react.js. Aquí solo quedan:
      · las funciones que hablan con Supabase (consultar y guardar), y
-     · el "puente" con React: abrir la vista, cerrarla y saber si hay cambios sin guardar.
+     · el "puente" con React: abrir la vista y saber si hay cambios sin guardar.
    ===================================================================== */
 
 // Fecha más antigua que se acepta (debe coincidir con el atributo min del campo de fecha).
@@ -944,13 +951,6 @@ function abrirVistaAsistencia() {
   window.VistaAsistencia.abrir();
 }
 
-// Quita la vista Asistencia de la pantalla y borra sus datos (se usa al cerrar sesión).
-function cerrarVistaAsistencia() {
-  if (window.VistaAsistencia) {
-    window.VistaAsistencia.cerrar();
-  }
-}
-
 // Indica si en la vista Asistencia hay interruptores movidos que todavía no se guardaron.
 function asistenciaTieneCambiosSinGuardar() {
   return Boolean(window.VistaAsistencia) && window.VistaAsistencia.tieneCambiosSinGuardar();
@@ -958,7 +958,7 @@ function asistenciaTieneCambiosSinGuardar() {
 
 
 /* =====================================================================
-   7. DASHBOARD
+   6. DASHBOARD
    ===================================================================== */
 
 // Calcula el porcentaje de "parte" sobre "total" con un decimal (ejemplo: 77.8).
@@ -1005,15 +1005,25 @@ function calcularMetricasDelDashboard(estudiantesActivos, asistenciasDeHoy) {
   };
 }
 
-// Escribe las cifras en las tarjetas. La tarjeta de asistencia tiene tres estados:
+// Reparte la barra de pagos en tres tramos: cada uno ocupa su parte del total de activos.
+function dibujarBarraDePagos(metricas) {
+  const ancho = (cantidad) => (metricas.activos > 0 ? (cantidad / metricas.activos) * 100 : 0) + "%";
+
+  elementos.dashTramoAlDia.style.width = ancho(metricas.alDia);
+  elementos.dashTramoPendientes.style.width = ancho(metricas.pendientes);
+  elementos.dashTramoVencidos.style.width = ancho(metricas.vencidos);
+}
+
+// Escribe las cifras en el dashboard. El marcador de asistencia tiene tres estados:
 //   1) hay registros hoy              → porcentaje, barra, presentes, ausentes y sin registrar
 //   2) nadie tiene registro hoy       → "Aún no se ha tomado asistencia hoy" y sin registrar
-//   3) no hay estudiantes activos     → "No hay estudiantes activos todavía."
+//   3) no hay estudiantes activos     → "No hay estudiantes activos todavía"
 function dibujarDashboard(metricas, fechaHoy) {
   elementos.dashActivos.textContent = metricas.activos;
   elementos.dashAlDia.textContent = metricas.alDia;
   elementos.dashPendientes.textContent = metricas.pendientes;
   elementos.dashVencidos.textContent = metricas.vencidos;
+  dibujarBarraDePagos(metricas);
 
   const hayActivos = metricas.activos > 0;
   const hayRegistros = metricas.registrados > 0;
@@ -1033,21 +1043,6 @@ function dibujarDashboard(metricas, fechaHoy) {
     elementos.dashAusentes.textContent = metricas.ausentes;
   }
   elementos.dashSinRegistrar.textContent = metricas.sinRegistrar;
-}
-
-// Deja el dashboard en blanco ("—"). Se usa al cerrar sesión para no dejar datos en pantalla.
-function limpiarDashboardEnPantalla() {
-  estado.dashboardCargado = false;
-
-  [elementos.dashActivos, elementos.dashAlDia, elementos.dashPendientes, elementos.dashVencidos]
-    .forEach((tarjeta) => { tarjeta.textContent = "—"; });
-
-  elementos.dashFecha.textContent = "";
-  elementos.textoActualizacionDashboard.textContent = "";
-  elementos.dashAsistenciaConDatos.classList.add("hidden");
-  elementos.dashAsistenciaSinDatos.classList.add("hidden");
-  elementos.dashAsistenciaSinEstudiantes.classList.add("hidden");
-  elementos.dashAsistenciaCifras.classList.add("hidden");
 }
 
 // Pide a Supabase los estudiantes activos y la asistencia guardada para HOY (fecha local),
@@ -1099,11 +1094,11 @@ async function actualizarDashboard() {
 
 
 /* =====================================================================
-   8. NAVEGACIÓN
+   7. NAVEGACIÓN
    ===================================================================== */
 
 // Muestra la vista pedida y oculta las demás.
-// También marca como activo el botón del menú que le corresponde
+// También marca como activa la pestaña del menú que le corresponde
 // y carga los datos que esa vista necesita.
 function mostrarVista(nombreVista) {
   estado.vistaActual = nombreVista;
@@ -1113,7 +1108,7 @@ function mostrarVista(nombreVista) {
     seccion.classList.toggle("hidden", !esLaPedida);
   });
 
-  document.querySelectorAll("[data-ir-a]").forEach((boton) => {
+  document.querySelectorAll("nav [data-ir-a]").forEach((boton) => {
     if (boton.dataset.irA === nombreVista) {
       boton.setAttribute("aria-current", "page");
     } else {
@@ -1144,12 +1139,12 @@ async function navegarAVista(nombreVista) {
 
 
 /* =====================================================================
-   9. INICIO
+   8. INICIO
    ===================================================================== */
 
 // Conecta cada botón y formulario con la función que debe ejecutar.
 function conectarEventos() {
-  // Menú de navegación
+  // Pestañas del menú (y los botones del dashboard que llevan a otra vista)
   document.querySelectorAll("[data-ir-a]").forEach((boton) => {
     boton.addEventListener("click", () => navegarAVista(boton.dataset.irA));
   });
@@ -1174,23 +1169,40 @@ function conectarEventos() {
   elementos.botonActualizarDashboard.addEventListener("click", actualizarDashboard);
 }
 
-// Punto de entrada: prepara la página y arranca directamente en el Dashboard.
-async function iniciarAplicacion() {
+// Escribe la fecha de hoy en el encabezado (ejemplo: "martes, 10 de noviembre de 2026").
+function escribirFechaEnEncabezado() {
+  const formato = { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+  elementos.fechaEncabezado.textContent = new Date().toLocaleDateString("es-CO", formato);
+}
+
+// Muestra la pantalla que explica por qué la aplicación no puede empezar.
+// La aplicación se queda oculta: sin conexión con Supabase ningún botón funcionaría.
+function mostrarProblemaDeInicio(mensaje) {
+  elementos.textoProblema.textContent = mensaje;
+  elementos.pantallaProblema.classList.remove("hidden");
+}
+
+// Punto de entrada: revisa que todo esté listo y abre la aplicación en el Dashboard.
+function iniciarAplicacion() {
   guardarReferenciasDelDOM();
-  elementos.appPrincipal.classList.remove("hidden");
-  conectarEventos();
 
   if (!sdkDeSupabaseCargado()) {
-    mostrarAviso("No se pudo cargar la librería de Supabase. Revisa tu conexión a Internet y recarga la página.", "error");
+    mostrarProblemaDeInicio("No se pudo cargar la librería de Supabase. Revisa tu conexión a Internet.");
     return;
   }
 
   if (!configuracionEsValida()) {
-    mostrarAviso("Falta configurar Supabase. Copia config.example.js como config.js y escribe tu SUPABASE_URL y tu SUPABASE_ANON_KEY.", "error");
+    mostrarProblemaDeInicio(
+      "Faltan los datos de conexión con Supabase. Revisa que el archivo conexion.js esté junto a index.html " +
+      "y que tenga escritos SUPABASE_URL y SUPABASE_ANON_KEY."
+    );
     return;
   }
 
   crearClienteSupabase();
+  conectarEventos();
+  escribirFechaEnEncabezado();
+  elementos.appPrincipal.classList.remove("hidden");
   mostrarVista("dashboard");
 }
 

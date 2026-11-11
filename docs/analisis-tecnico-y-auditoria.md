@@ -5,6 +5,8 @@
 > Código analizado: rama `claude/epic-planck-7swzxk`, commit `050ae03` · Fecha: 31 de octubre de 2026
 > Preparado por Claude (asistente de IA) a petición del equipo, como **material de estudio y apoyo teórico para la exposición**.
 > No es una certificación de seguridad ni asesoría legal.
+>
+> **Nota del 10 de noviembre de 2026:** después de este análisis, y a petición del equipo, se **retiró el inicio de sesión** para la demostración y se rediseñó la interfaz. Lo que aquí se dice del login, del cierre de sesión y del archivo `config.js` describe la versión del commit `050ae03`, no la actual: hoy la aplicación entra directo, lee `conexion.js` y necesita la base abierta al rol anónimo (el hallazgo S-01 es ahora el estado normal de la demostración). El [README](../README.md#6-seguridad-qué-significa-no-tener-inicio-de-sesión) explica cómo cerrarla.
 
 ---
 

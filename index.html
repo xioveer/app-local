@@ -5,14 +5,80 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestor de Academia</title>
 
-  <!-- Ícono de la pestaña (un emoji dibujado con SVG, para no necesitar archivos extra) -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+  <!-- Ícono de la pestaña: el escudo "GA" dibujado con SVG (así no hacen falta archivos extra) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230C1F4A%22/><text x=%2250%22 y=%2268%22 font-family=%22Arial,sans-serif%22 font-size=%2248%22 font-weight=%22bold%22 text-anchor=%22middle%22 fill=%22%23FFC629%22>GA</text></svg>">
+
+  <!-- Letras (Google Fonts): Barlow para los textos y Barlow Condensed para títulos y números -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
 
   <!-- Tailwind CSS por CDN: genera los estilos a partir de las clases que usamos en el HTML -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Colores y letras de la academia. Con esto existen clases como bg-tinta, text-sol o font-titulo. -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            tinta: "#0C1F4A", // azul oscuro: encabezado, títulos y botones principales
+            sol: "#FFC629",   // amarillo: el color que resalta (como el de una camiseta)
+            papel: "#F1F4F9", // gris muy claro: el fondo de la página
+          },
+          fontFamily: {
+            sans: ["Barlow", "system-ui", "sans-serif"],
+            titulo: ["Barlow Condensed", "Barlow", "system-ui", "sans-serif"],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Clases propias. Cada una junta varias clases de Tailwind bajo un solo nombre (con @apply),
+       para no repetir la misma lista larga en cada botón, campo o tarjeta. -->
+  <style type="text/tailwindcss">
+    @layer components {
+      /* Superficies */
+      .tarjeta { @apply rounded-2xl border border-slate-200 bg-white; }
+      .vacio { @apply rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-sm text-slate-500; }
+
+      /* Títulos */
+      .titulo-vista { @apply font-titulo text-4xl font-bold text-tinta; }
+      .titulo-tarjeta { @apply font-titulo text-2xl font-bold text-tinta; }
+
+      /* Pestañas del menú: la de la vista actual se pinta del color de la página */
+      .pestana { @apply shrink-0 rounded-t-xl px-2 py-2.5 font-titulo text-base font-semibold text-blue-100 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sol sm:px-5 sm:text-lg; }
+      .pestana[aria-current="page"] { @apply bg-papel text-tinta; }
+
+      /* Botones: siempre "boton" + el tipo (boton-principal, boton-secundario...) */
+      .boton { @apply inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-tinta focus-visible:ring-offset-2; }
+      .boton-principal { @apply bg-tinta text-white hover:bg-blue-900; }
+      .boton-sol { @apply bg-sol text-tinta hover:bg-yellow-300 focus-visible:ring-sol focus-visible:ring-offset-tinta; }
+      .boton-secundario { @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-100; }
+      .boton-peligro { @apply bg-rose-600 text-white hover:bg-rose-700; }
+      .boton-chico { @apply h-8 px-3 text-xs; }
+
+      /* Formularios */
+      .etiqueta { @apply mb-1 block text-sm font-medium text-slate-700; }
+      .campo { @apply block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 focus:border-tinta focus:outline-none focus:ring-2 focus:ring-tinta/20; }
+      .campo[aria-invalid="true"] { @apply border-rose-500; }
+      .error-de-campo { @apply mt-1 text-xs font-medium text-rose-600; }
+
+      /* Etiqueta pequeña de estado (pago, inactivo, sin registrar) */
+      .chip { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold; }
+
+      /* Círculo con las iniciales del estudiante */
+      .iniciales { @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-tinta font-titulo text-sm font-bold text-sol; }
+
+      /* Celda de la tabla de estudiantes. En celular la fila es una tarjeta y cada celda
+         muestra antes su nombre (lo toma del atributo data-etiqueta). */
+      .celda { @apply flex gap-2 py-0.5 text-slate-600 before:w-24 before:shrink-0 before:text-xs before:font-medium before:leading-5 before:text-slate-400 before:content-[attr(data-etiqueta)] md:table-cell md:px-4 md:py-3 md:before:hidden; }
+    }
+  </style>
 </head>
 
-<body class="bg-slate-50 text-slate-800 antialiased">
+<body class="bg-papel text-slate-800 antialiased">
 
   <!-- =================================================================
        AVISOS (toasts): mensajes cortos para el usuario.
@@ -25,10 +91,10 @@
        INDICADOR DE CARGA: cubre la pantalla mientras se consulta a Supabase.
        ================================================================= -->
   <div id="indicador-cargando" role="status" aria-live="polite"
-       class="fixed inset-0 z-40 hidden bg-white/70 backdrop-blur-sm">
+       class="fixed inset-0 z-40 hidden bg-papel/70 backdrop-blur-sm">
     <div class="flex h-full items-center justify-center">
-      <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 shadow-lg">
-        <svg class="h-5 w-5 animate-spin text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+      <div class="tarjeta flex items-center gap-3 px-5 py-3 shadow-lg">
+        <svg class="h-5 w-5 animate-spin text-tinta" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
         </svg>
@@ -45,292 +111,288 @@
        el diálogo se cierra y guarda el "value" del botón como resultado.
        ================================================================= -->
   <dialog id="dialogo-confirmacion"
-          class="m-auto w-[calc(100%-2rem)] max-w-sm rounded-2xl bg-white p-0 text-slate-800 shadow-xl backdrop:bg-slate-900/50">
+          class="m-auto w-[calc(100%-2rem)] max-w-sm rounded-2xl bg-white p-0 text-slate-800 shadow-xl backdrop:bg-tinta/60">
     <form method="dialog" class="p-6">
-      <h3 id="titulo-confirmacion" class="text-lg font-semibold text-slate-900"></h3>
+      <h3 id="titulo-confirmacion" class="titulo-tarjeta"></h3>
       <p id="mensaje-confirmacion" class="mt-2 text-sm text-slate-600"></p>
       <div class="mt-6 flex justify-end gap-2">
-        <button type="submit" value="cancelar" autofocus
-                class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          Cancelar
-        </button>
-        <button id="boton-confirmar" type="submit" value="confirmar"
-                class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2">
-          Confirmar
-        </button>
+        <button type="submit" value="cancelar" autofocus class="boton boton-secundario">Cancelar</button>
+        <button id="boton-confirmar" type="submit" value="confirmar" class="boton boton-peligro">Confirmar</button>
       </div>
     </form>
   </dialog>
 
 
+  <!-- =================================================================
+       PANTALLA DE PROBLEMA AL EMPEZAR
+       Solo se muestra si la aplicación no puede arrancar (por ejemplo, si
+       faltan los datos de conexion.js). app.js escribe aquí la explicación.
+       ================================================================= -->
+  <section id="pantalla-problema" class="hidden">
+    <div class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-10">
+      <div class="tarjeta p-6">
+        <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-sol font-titulo text-xl font-bold text-tinta" aria-hidden="true">GA</div>
+        <h1 class="titulo-tarjeta mt-4">La aplicación no pudo empezar</h1>
+        <p id="texto-problema" role="alert" class="mt-2 text-sm text-slate-600"></p>
+        <a href="./" class="boton boton-principal mt-6">Volver a intentar</a>
+      </div>
+    </div>
+  </section>
+
 
   <!-- =================================================================
        APLICACIÓN PRINCIPAL
-       Solo se muestra cuando hay sesión. Contiene el encabezado,
-       el menú de navegación y las vistas (secciones) de la app.
+       Contiene el encabezado, el menú de pestañas y las vistas (secciones).
+       Empieza oculta; app.js la muestra cuando todo está listo.
        ================================================================= -->
   <div id="app-principal" class="hidden min-h-screen">
 
-    <!-- Encabezado: nombre, usuario y botón de cerrar sesión -->
-    <header class="border-b border-slate-200 bg-white">
-      <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+    <!-- Encabezado: escudo, nombre y fecha de hoy -->
+    <header class="bg-tinta text-white">
+      <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 pb-4 pt-5">
         <div class="flex min-w-0 items-center gap-3">
-          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-lg text-white" aria-hidden="true">🎓</div>
-          <span class="truncate text-lg font-bold text-slate-900">Gestor de Academia</span>
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sol font-titulo text-xl font-bold text-tinta" aria-hidden="true">GA</div>
+          <div class="min-w-0">
+            <p class="truncate font-titulo text-2xl font-bold leading-tight">Gestor de Academia</p>
+            <p class="truncate text-sm text-blue-200">Estudiantes, pagos y asistencia</p>
+          </div>
         </div>
-
+        <p id="fecha-encabezado" class="hidden shrink-0 text-sm text-blue-200 sm:block"></p>
       </div>
 
-      <!-- Menú de navegación: cada botón lleva data-ir-a con el nombre de su vista.
-           El botón de la vista activa recibe aria-current="page" desde app.js
-           y Tailwind lo pinta de índigo con la variante aria-[current=page]. -->
-      <nav aria-label="Secciones" class="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 pb-3">
-        <button type="button" data-ir-a="dashboard"
-                class="shrink-0 rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 aria-[current=page]:bg-indigo-600 aria-[current=page]:text-white">
-          Dashboard
-        </button>
-        <button type="button" data-ir-a="estudiantes"
-                class="shrink-0 rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 aria-[current=page]:bg-indigo-600 aria-[current=page]:text-white">
-          Estudiantes
-        </button>
-        <button type="button" data-ir-a="asistencia"
-                class="shrink-0 rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 aria-[current=page]:bg-indigo-600 aria-[current=page]:text-white">
-          Asistencia
-        </button>
-        <button type="button" data-ir-a="disciplinas"
-                class="shrink-0 rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 aria-[current=page]:bg-indigo-600 aria-[current=page]:text-white">
-          Disciplinas
-        </button>
+      <!-- Menú de pestañas: cada botón lleva data-ir-a con el nombre de su vista.
+           app.js pone aria-current="page" en la pestaña de la vista que se está viendo. -->
+      <nav aria-label="Secciones" class="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4">
+        <button type="button" data-ir-a="dashboard" class="pestana">Dashboard</button>
+        <button type="button" data-ir-a="estudiantes" class="pestana">Estudiantes</button>
+        <button type="button" data-ir-a="asistencia" class="pestana">Asistencia</button>
+        <button type="button" data-ir-a="disciplinas" class="pestana">Disciplinas</button>
       </nav>
     </header>
 
 
     <!-- Contenido principal. Cada <section data-vista="..."> es una vista;
          app.js muestra solo una a la vez quitando/poniendo la clase "hidden". -->
-    <main class="mx-auto max-w-6xl px-4 py-6">
+    <main class="mx-auto max-w-6xl px-4 py-8">
 
-      <!-- Vista: Dashboard (resumen de estudiantes, pagos y asistencia de hoy).
+      <!-- Vista: Dashboard (asistencia de hoy, estudiantes activos y pagos).
            Los números empiezan en "—" y app.js los rellena en cargarDashboard(). -->
       <section data-vista="dashboard" class="hidden">
 
-        <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 class="text-xl font-bold text-slate-900">Dashboard</h2>
+            <h2 class="titulo-vista">Dashboard</h2>
             <p id="texto-actualizacion-dashboard" class="mt-1 text-sm text-slate-500"></p>
           </div>
-          <button id="boton-actualizar-dashboard" type="button"
-                  class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            ↻ Actualizar
-          </button>
+          <button id="boton-actualizar-dashboard" type="button" class="boton boton-secundario">Actualizar</button>
         </div>
 
-        <!-- Tarjetas: estudiantes activos y estado de pago (solo cuentan los activos) -->
-        <div class="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="flex items-center gap-2 text-sm font-medium text-slate-500">
-              <span class="h-2.5 w-2.5 rounded-full bg-indigo-500" aria-hidden="true"></span>
-              Estudiantes activos
+        <div class="mt-6 grid gap-4 lg:grid-cols-5">
+
+          <!-- Marcador de la asistencia de hoy: cuenta solo lo guardado en la base de datos.
+               Tiene tres estados (app.js muestra uno y oculta los otros):
+               1) hay registros → porcentaje, barra y presentes/ausentes
+               2) nadie tiene registro → "Aún no se ha tomado asistencia hoy"
+               3) no hay estudiantes activos -->
+          <div class="rounded-3xl bg-tinta p-6 text-white sm:p-8 lg:col-span-3">
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+              <h3 class="font-titulo text-2xl font-bold">Asistencia de hoy</h3>
+              <span id="dash-fecha" class="text-sm text-blue-200"></span>
             </div>
-            <p id="dash-activos" class="mt-2 text-3xl font-bold text-slate-900">—</p>
+
+            <div id="dash-asistencia-con-datos" class="mt-6 hidden">
+              <div class="flex items-end gap-3">
+                <p id="dash-porcentaje" class="font-titulo text-7xl font-bold leading-none text-sol"></p>
+                <p class="pb-1 text-sm text-blue-200">de presentes sobre los registrados</p>
+              </div>
+              <div class="mt-5 h-3 w-full overflow-hidden rounded-full bg-white/15" role="presentation">
+                <div id="dash-barra" class="h-full rounded-full bg-sol transition-[width] duration-700 motion-reduce:transition-none" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div id="dash-asistencia-sin-datos" class="mt-6 hidden">
+              <p class="font-titulo text-3xl font-bold">Aún no se ha tomado asistencia hoy</p>
+              <button type="button" data-ir-a="asistencia" class="boton boton-sol mt-4">Tomar asistencia</button>
+            </div>
+
+            <div id="dash-asistencia-sin-estudiantes" class="mt-6 hidden">
+              <p class="font-titulo text-3xl font-bold">No hay estudiantes activos todavía</p>
+              <button type="button" data-ir-a="estudiantes" class="boton boton-sol mt-4">Ir a Estudiantes</button>
+            </div>
+
+            <dl id="dash-asistencia-cifras" class="mt-6 hidden grid grid-cols-3 gap-3 border-t border-white/15 pt-5">
+              <div id="dash-bloque-presentes">
+                <dt class="flex items-center gap-2 text-sm text-blue-200">
+                  <span class="h-2.5 w-2.5 rounded-full bg-emerald-400" aria-hidden="true"></span>Presentes
+                </dt>
+                <dd id="dash-presentes" class="mt-1 font-titulo text-4xl font-bold"></dd>
+              </div>
+              <div id="dash-bloque-ausentes">
+                <dt class="flex items-center gap-2 text-sm text-blue-200">
+                  <span class="h-2.5 w-2.5 rounded-full bg-rose-400" aria-hidden="true"></span>Ausentes
+                </dt>
+                <dd id="dash-ausentes" class="mt-1 font-titulo text-4xl font-bold"></dd>
+              </div>
+              <div>
+                <dt class="flex items-center gap-2 text-sm text-blue-200">
+                  <span class="h-2.5 w-2.5 rounded-full bg-orange-400" aria-hidden="true"></span>Sin registrar
+                </dt>
+                <dd id="dash-sin-registrar" class="mt-1 font-titulo text-4xl font-bold"></dd>
+              </div>
+            </dl>
           </div>
 
-          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="flex items-center gap-2 text-sm font-medium text-slate-500">
-              <span class="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true"></span>
-              Pagos al día
+          <!-- Estudiantes activos y su estado de pago (solo cuentan los activos) -->
+          <div class="tarjeta p-6 lg:col-span-2">
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="titulo-tarjeta">Estudiantes activos</h3>
+              <p id="dash-activos" class="font-titulo text-5xl font-bold leading-none text-tinta">—</p>
             </div>
-            <p id="dash-al-dia" class="mt-2 text-3xl font-bold text-slate-900">—</p>
+
+            <h4 class="mt-6 text-sm font-semibold text-slate-500">Estado de pago</h4>
+            <!-- Barra repartida en tres tramos; app.js le pone a cada uno su ancho -->
+            <div class="mt-2 flex h-3 w-full overflow-hidden rounded-full bg-slate-100" role="presentation">
+              <div id="dash-tramo-al-dia" class="h-full bg-emerald-500" style="width: 0%"></div>
+              <div id="dash-tramo-pendientes" class="h-full bg-orange-400" style="width: 0%"></div>
+              <div id="dash-tramo-vencidos" class="h-full bg-rose-500" style="width: 0%"></div>
+            </div>
+
+            <dl class="mt-3 divide-y divide-slate-100">
+              <div class="flex items-center justify-between py-2.5">
+                <dt class="flex items-center gap-2 text-sm text-slate-600">
+                  <span class="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true"></span>Al día
+                </dt>
+                <dd id="dash-al-dia" class="font-titulo text-2xl font-bold text-slate-900">—</dd>
+              </div>
+              <div class="flex items-center justify-between py-2.5">
+                <dt class="flex items-center gap-2 text-sm text-slate-600">
+                  <span class="h-2.5 w-2.5 rounded-full bg-orange-400" aria-hidden="true"></span>Pendientes
+                </dt>
+                <dd id="dash-pendientes" class="font-titulo text-2xl font-bold text-slate-900">—</dd>
+              </div>
+              <div class="flex items-center justify-between py-2.5">
+                <dt class="flex items-center gap-2 text-sm text-slate-600">
+                  <span class="h-2.5 w-2.5 rounded-full bg-rose-500" aria-hidden="true"></span>Vencidos
+                </dt>
+                <dd id="dash-vencidos" class="font-titulo text-2xl font-bold text-slate-900">—</dd>
+              </div>
+            </dl>
           </div>
-
-          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="flex items-center gap-2 text-sm font-medium text-slate-500">
-              <span class="h-2.5 w-2.5 rounded-full bg-amber-500" aria-hidden="true"></span>
-              Pagos pendientes
-            </div>
-            <p id="dash-pendientes" class="mt-2 text-3xl font-bold text-slate-900">—</p>
-          </div>
-
-          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="flex items-center gap-2 text-sm font-medium text-slate-500">
-              <span class="h-2.5 w-2.5 rounded-full bg-rose-500" aria-hidden="true"></span>
-              Pagos vencidos
-            </div>
-            <p id="dash-vencidos" class="mt-2 text-3xl font-bold text-slate-900">—</p>
-          </div>
-        </div>
-
-        <!-- Asistencia de hoy: cuenta solo lo que está guardado en la base de datos.
-             Tiene tres estados (app.js muestra uno y oculta los otros):
-             1) hay registros → porcentaje, barra y presentes/ausentes
-             2) nadie tiene registro → "Aún no se ha tomado asistencia hoy"
-             3) no hay estudiantes activos -->
-        <div class="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div class="flex flex-wrap items-baseline justify-between gap-2">
-            <h3 class="text-lg font-semibold text-slate-900">Asistencia de hoy</h3>
-            <span id="dash-fecha" class="text-sm text-slate-500"></span>
-          </div>
-
-          <div id="dash-asistencia-con-datos" class="mt-4 hidden">
-            <div class="flex items-end gap-3">
-              <p id="dash-porcentaje" class="text-4xl font-bold text-slate-900"></p>
-              <p class="pb-1 text-sm text-slate-500">de presentes sobre los registrados</p>
-            </div>
-            <div class="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-slate-200" role="presentation">
-              <div id="dash-barra" class="h-full rounded-full bg-emerald-500" style="width: 0%"></div>
-            </div>
-          </div>
-
-          <p id="dash-asistencia-sin-datos" class="mt-4 hidden text-lg font-medium text-slate-600">Aún no se ha tomado asistencia hoy</p>
-          <p id="dash-asistencia-sin-estudiantes" class="mt-4 hidden text-lg font-medium text-slate-600">No hay estudiantes activos todavía.</p>
-
-          <dl id="dash-asistencia-cifras" class="mt-5 hidden grid grid-cols-3 gap-3">
-            <div id="dash-bloque-presentes" class="rounded-xl bg-emerald-50 p-3">
-              <dt class="text-xs font-medium text-emerald-800">Presentes</dt>
-              <dd id="dash-presentes" class="mt-1 text-2xl font-bold text-emerald-900"></dd>
-            </div>
-            <div id="dash-bloque-ausentes" class="rounded-xl bg-rose-50 p-3">
-              <dt class="text-xs font-medium text-rose-800">Ausentes</dt>
-              <dd id="dash-ausentes" class="mt-1 text-2xl font-bold text-rose-900"></dd>
-            </div>
-            <div class="rounded-xl bg-amber-50 p-3">
-              <dt class="text-xs font-medium text-amber-800">Sin registrar</dt>
-              <dd id="dash-sin-registrar" class="mt-1 text-2xl font-bold text-amber-900"></dd>
-            </div>
-          </dl>
         </div>
       </section>
 
       <!-- Vista: Estudiantes (formulario, buscador, filtros y tabla) -->
       <section data-vista="estudiantes" class="hidden">
 
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <h2 class="text-xl font-bold text-slate-900">Estudiantes</h2>
-          <button id="boton-nuevo-estudiante" type="button"
-                  class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-            + Nuevo estudiante
-          </button>
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 class="titulo-vista">Estudiantes</h2>
+            <p id="contador-estudiantes" class="mt-1 text-sm text-slate-500"></p>
+          </div>
+          <button id="boton-nuevo-estudiante" type="button" class="boton boton-principal">+ Nuevo estudiante</button>
         </div>
 
         <!-- Formulario para crear y editar (oculto hasta que se pulsa "Nuevo" o "Editar").
              Cada campo tiene name="columna_de_la_base_de_datos".
              Los <p data-error-de="..."> muestran el error de validación de cada campo. -->
-        <div id="panel-formulario-estudiante"
-             class="mt-4 hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 id="titulo-formulario-estudiante" class="text-lg font-semibold text-slate-900">Nuevo estudiante</h3>
+        <div id="panel-formulario-estudiante" class="tarjeta mt-6 hidden border-t-4 border-t-sol p-6">
+          <h3 id="titulo-formulario-estudiante" class="titulo-tarjeta">Nuevo estudiante</h3>
 
           <form id="formulario-estudiante" novalidate class="mt-4 grid gap-4 sm:grid-cols-2">
 
             <div class="sm:col-span-2">
-              <label for="campo-nombre" class="block text-sm font-medium text-slate-700">Nombre completo <span class="text-rose-600">*</span></label>
-              <input id="campo-nombre" name="nombre_completo" type="text" maxlength="100" autocomplete="off"
-                     class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 aria-[invalid=true]:border-rose-500">
-              <p data-error-de="nombre_completo" class="mt-1 hidden text-xs text-rose-600"></p>
+              <label for="campo-nombre" class="etiqueta">Nombre completo <span class="text-rose-600">*</span></label>
+              <input id="campo-nombre" name="nombre_completo" type="text" maxlength="100" autocomplete="off" class="campo">
+              <p data-error-de="nombre_completo" class="error-de-campo hidden"></p>
             </div>
 
             <div>
-              <label for="campo-edad" class="block text-sm font-medium text-slate-700">Edad <span class="text-rose-600">*</span></label>
-              <input id="campo-edad" name="edad" type="number" inputmode="numeric" min="3" max="99" step="1"
-                     class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 aria-[invalid=true]:border-rose-500">
-              <p data-error-de="edad" class="mt-1 hidden text-xs text-rose-600"></p>
+              <label for="campo-edad" class="etiqueta">Edad <span class="text-rose-600">*</span></label>
+              <input id="campo-edad" name="edad" type="number" inputmode="numeric" min="3" max="99" step="1" class="campo">
+              <p data-error-de="edad" class="error-de-campo hidden"></p>
             </div>
 
             <div>
-              <label for="campo-disciplina" class="block text-sm font-medium text-slate-700">Disciplina <span class="text-rose-600">*</span></label>
-              <select id="campo-disciplina" name="disciplina_id"
-                      class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 aria-[invalid=true]:border-rose-500"></select>
-              <p data-error-de="disciplina_id" class="mt-1 hidden text-xs text-rose-600"></p>
+              <label for="campo-disciplina" class="etiqueta">Disciplina <span class="text-rose-600">*</span></label>
+              <select id="campo-disciplina" name="disciplina_id" class="campo"></select>
+              <p data-error-de="disciplina_id" class="error-de-campo hidden"></p>
             </div>
 
             <div>
-              <label for="campo-categoria" class="block text-sm font-medium text-slate-700">Categoría</label>
+              <label for="campo-categoria" class="etiqueta">Categoría</label>
               <input id="campo-categoria" name="categoria" type="text" maxlength="50" autocomplete="off"
-                     placeholder="Ej. Infantil, Sub-12, Principiante"
-                     class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 aria-[invalid=true]:border-rose-500">
-              <p data-error-de="categoria" class="mt-1 hidden text-xs text-rose-600"></p>
+                     placeholder="Ej. Infantil, Sub-12, Principiante" class="campo">
+              <p data-error-de="categoria" class="error-de-campo hidden"></p>
             </div>
 
             <div>
-              <label for="campo-estado-pago" class="block text-sm font-medium text-slate-700">Estado de pago <span class="text-rose-600">*</span></label>
-              <select id="campo-estado-pago" name="estado_pago"
-                      class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 aria-[invalid=true]:border-rose-500">
+              <label for="campo-estado-pago" class="etiqueta">Estado de pago <span class="text-rose-600">*</span></label>
+              <select id="campo-estado-pago" name="estado_pago" class="campo">
                 <option value="al_dia" selected>Al día</option>
                 <option value="pendiente">Pendiente</option>
                 <option value="vencido">Vencido</option>
               </select>
-              <p data-error-de="estado_pago" class="mt-1 hidden text-xs text-rose-600"></p>
+              <p data-error-de="estado_pago" class="error-de-campo hidden"></p>
             </div>
 
             <!-- Acudiente: obligatorio solo si el estudiante es menor de 18 años.
                  app.js cambia el texto de ayuda y muestra/oculta los asteriscos (data-marca-acudiente). -->
-            <div class="sm:col-span-2 border-t border-slate-100 pt-4">
+            <div class="border-t border-slate-100 pt-4 sm:col-span-2">
               <h4 class="text-sm font-semibold text-slate-900">Acudiente</h4>
               <p id="ayuda-acudiente" class="mt-1 text-xs text-slate-500"></p>
             </div>
 
             <div>
-              <label for="campo-acudiente-nombre" class="block text-sm font-medium text-slate-700">Nombre del acudiente <span data-marca-acudiente class="hidden text-rose-600">*</span></label>
-              <input id="campo-acudiente-nombre" name="acudiente_nombre" type="text" maxlength="100" autocomplete="off"
-                     class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 aria-[invalid=true]:border-rose-500">
-              <p data-error-de="acudiente_nombre" class="mt-1 hidden text-xs text-rose-600"></p>
+              <label for="campo-acudiente-nombre" class="etiqueta">Nombre del acudiente <span data-marca-acudiente class="hidden text-rose-600">*</span></label>
+              <input id="campo-acudiente-nombre" name="acudiente_nombre" type="text" maxlength="100" autocomplete="off" class="campo">
+              <p data-error-de="acudiente_nombre" class="error-de-campo hidden"></p>
             </div>
 
             <div>
-              <label for="campo-acudiente-telefono" class="block text-sm font-medium text-slate-700">Teléfono del acudiente <span data-marca-acudiente class="hidden text-rose-600">*</span></label>
-              <input id="campo-acudiente-telefono" name="acudiente_telefono" type="tel" maxlength="25" autocomplete="off"
-                     class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 aria-[invalid=true]:border-rose-500">
-              <p data-error-de="acudiente_telefono" class="mt-1 hidden text-xs text-rose-600"></p>
+              <label for="campo-acudiente-telefono" class="etiqueta">Teléfono del acudiente <span data-marca-acudiente class="hidden text-rose-600">*</span></label>
+              <input id="campo-acudiente-telefono" name="acudiente_telefono" type="tel" maxlength="25" autocomplete="off" class="campo">
+              <p data-error-de="acudiente_telefono" class="error-de-campo hidden"></p>
             </div>
 
-            <div class="sm:col-span-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button id="boton-cancelar-estudiante" type="button"
-                      class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                Cancelar
-              </button>
-              <button id="boton-guardar-estudiante" type="submit"
-                      class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                Guardar estudiante
-              </button>
+            <div class="flex flex-col-reverse gap-2 sm:col-span-2 sm:flex-row sm:justify-end">
+              <button id="boton-cancelar-estudiante" type="button" class="boton boton-secundario">Cancelar</button>
+              <button id="boton-guardar-estudiante" type="submit" class="boton boton-principal">Guardar estudiante</button>
             </div>
           </form>
         </div>
 
         <!-- Buscador y filtros: se pueden combinar -->
-        <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div class="sm:flex-1">
+        <div class="mt-6 flex flex-col gap-3 md:flex-row md:items-center">
+          <div class="md:flex-1">
             <label for="filtro-texto" class="sr-only">Buscar por nombre</label>
-            <input id="filtro-texto" type="search" placeholder="Buscar por nombre..." autocomplete="off"
-                   class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+            <input id="filtro-texto" type="search" placeholder="Buscar por nombre" autocomplete="off" class="campo">
           </div>
-          <div class="sm:w-60">
+          <div class="md:w-60">
             <label for="filtro-disciplina" class="sr-only">Filtrar por disciplina</label>
-            <select id="filtro-disciplina"
-                    class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"></select>
+            <select id="filtro-disciplina" class="campo"></select>
           </div>
           <label class="flex items-center gap-2 text-sm text-slate-700">
-            <input id="filtro-inactivos" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+            <input id="filtro-inactivos" type="checkbox" class="h-4 w-4 accent-tinta">
             Mostrar inactivos
           </label>
         </div>
 
-        <p id="contador-estudiantes" class="mt-3 text-sm text-slate-500"></p>
-
         <!-- Lista de estudiantes.
              En pantallas grandes es una tabla; en celular cada fila se convierte en una tarjeta. -->
-        <div class="mt-3">
-          <p id="mensaje-sin-estudiantes"
-             class="hidden rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500"></p>
+        <div class="mt-4">
+          <p id="mensaje-sin-estudiantes" class="vacio hidden"></p>
 
-          <div id="contenedor-tabla-estudiantes" class="md:overflow-hidden md:rounded-2xl md:border md:border-slate-200 md:bg-white md:shadow-sm">
+          <div id="contenedor-tabla-estudiantes" class="md:overflow-hidden md:rounded-2xl md:border md:border-slate-200 md:bg-white">
             <table class="block w-full text-left text-sm md:table">
-              <thead class="hidden bg-slate-50 text-xs uppercase tracking-wide text-slate-500 md:table-header-group">
+              <thead class="hidden bg-slate-50 text-xs text-slate-500 md:table-header-group">
                 <tr>
-                  <th class="px-4 py-3 font-medium">Nombre</th>
-                  <th class="px-4 py-3 font-medium">Edad</th>
-                  <th class="px-4 py-3 font-medium">Disciplina</th>
-                  <th class="px-4 py-3 font-medium">Categoría</th>
-                  <th class="px-4 py-3 font-medium">Acudiente</th>
-                  <th class="px-4 py-3 font-medium">Pago</th>
-                  <th class="px-4 py-3 text-right font-medium">Acciones</th>
+                  <th class="px-4 py-3 font-semibold">Nombre</th>
+                  <th class="px-4 py-3 font-semibold">Edad</th>
+                  <th class="px-4 py-3 font-semibold">Disciplina</th>
+                  <th class="px-4 py-3 font-semibold">Categoría</th>
+                  <th class="px-4 py-3 font-semibold">Acudiente</th>
+                  <th class="px-4 py-3 font-semibold">Pago</th>
+                  <th class="px-4 py-3 text-right font-semibold">Acciones</th>
                 </tr>
               </thead>
               <tbody id="cuerpo-tabla-estudiantes" class="block space-y-3 md:table-row-group md:space-y-0 md:divide-y md:divide-slate-100"></tbody>
@@ -343,35 +405,29 @@
            React dibuja aquí dentro la fecha, el filtro, la lista con interruptores y la barra de guardar.
            Todo lo demás de la página sigue siendo JavaScript vainilla. -->
       <section data-vista="asistencia" class="hidden">
-        <h2 class="text-xl font-bold text-slate-900">Asistencia</h2>
-        <p class="mt-1 text-sm text-slate-500">Elige la fecha, marca quién vino y pulsa «Guardar asistencia». Solo aparecen los estudiantes activos.</p>
+        <h2 class="titulo-vista">Asistencia</h2>
+        <p class="mt-1 max-w-2xl text-sm text-slate-500">Elige la fecha, marca quién vino y pulsa «Guardar asistencia». Solo aparecen los estudiantes activos.</p>
 
         <div id="raiz-asistencia"></div>
       </section>
 
       <!-- Vista: Disciplinas (lista y formulario para agregar) -->
       <section data-vista="disciplinas" class="hidden">
-        <h2 class="text-xl font-bold text-slate-900">Disciplinas</h2>
-        <p class="mt-1 text-sm text-slate-500">Son las actividades de tu academia (fútbol, guitarra, danza...). Cada estudiante pertenece a una.</p>
+        <h2 class="titulo-vista">Disciplinas</h2>
+        <p class="mt-1 max-w-2xl text-sm text-slate-500">Son las actividades de la academia (fútbol, guitarra, danza...). Cada estudiante pertenece a una.</p>
 
-        <form id="formulario-disciplina" novalidate
-              class="mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-end">
+        <form id="formulario-disciplina" novalidate class="tarjeta mt-6 flex flex-col gap-3 p-5 sm:flex-row sm:items-end">
           <div class="sm:flex-1">
-            <label for="campo-disciplina-nombre" class="block text-sm font-medium text-slate-700">Nueva disciplina</label>
-            <input id="campo-disciplina-nombre" type="text" maxlength="50" autocomplete="off" placeholder="Ej. Natación"
-                   class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+            <label for="campo-disciplina-nombre" class="etiqueta">Nueva disciplina</label>
+            <input id="campo-disciplina-nombre" type="text" maxlength="50" autocomplete="off" placeholder="Ej. Natación" class="campo">
           </div>
-          <button type="submit"
-                  class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-            Agregar
-          </button>
+          <button type="submit" class="boton boton-principal">Agregar disciplina</button>
         </form>
 
-        <p id="mensaje-sin-disciplinas"
-           class="mt-4 hidden rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+        <p id="mensaje-sin-disciplinas" class="vacio mt-4 hidden">
           Aún no hay disciplinas. Agrega la primera con el formulario de arriba.
         </p>
-        <ul id="lista-disciplinas" class="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3"></ul>
+        <ul id="lista-disciplinas" class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"></ul>
       </section>
 
     </main>
@@ -384,57 +440,51 @@
        y rellena los textos con textContent (así nunca se interpreta HTML
        escrito por el usuario).
        - En pantallas grandes (md:) la fila es una fila de tabla.
-       - En celular es una tarjeta: cada celda muestra su etiqueta (data-etiqueta)
-         gracias a before:content-[attr(data-etiqueta)].
+       - En celular es una tarjeta: cada celda muestra su etiqueta (data-etiqueta),
+         gracias a la clase "celda" definida arriba.
        - "group" + data-inactivo permiten pintar de gris las filas inactivas.
        ================================================================= -->
   <template id="plantilla-fila-estudiante">
-    <tr class="group block rounded-xl border border-slate-200 bg-white p-4 data-[inactivo=true]:bg-slate-100 md:table-row md:rounded-none md:border-0 md:p-0">
+    <tr class="group block rounded-2xl border border-slate-200 bg-white p-4 data-[inactivo=true]:bg-slate-50 md:table-row md:rounded-none md:border-0 md:p-0">
 
-      <td class="mb-2 block md:mb-0 md:table-cell md:px-4 md:py-3">
-        <span data-texto="nombre" class="font-semibold text-slate-900 group-data-[inactivo=true]:text-slate-500"></span>
-        <span data-texto="etiqueta-inactivo" class="ml-2 hidden rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600">Inactivo</span>
+      <td class="mb-3 block md:mb-0 md:table-cell md:px-4 md:py-3">
+        <div class="flex items-center gap-3">
+          <span data-texto="iniciales" class="iniciales group-data-[inactivo=true]:bg-slate-300 group-data-[inactivo=true]:text-white" aria-hidden="true"></span>
+          <div class="min-w-0">
+            <span data-texto="nombre" class="font-semibold text-slate-900 group-data-[inactivo=true]:text-slate-500"></span>
+            <span data-texto="etiqueta-inactivo" class="chip ml-1 hidden bg-slate-200 text-slate-600">Inactivo</span>
+          </div>
+        </div>
       </td>
 
-      <td data-etiqueta="Edad"
-          class="flex gap-2 py-0.5 text-slate-600 before:w-24 before:shrink-0 before:text-xs before:font-medium before:uppercase before:leading-5 before:text-slate-400 before:content-[attr(data-etiqueta)] group-data-[inactivo=true]:text-slate-400 md:table-cell md:whitespace-nowrap md:px-4 md:py-3 md:before:hidden">
+      <td data-etiqueta="Edad" class="celda group-data-[inactivo=true]:text-slate-400 md:whitespace-nowrap">
         <span data-texto="edad"></span>
       </td>
 
-      <td data-etiqueta="Disciplina"
-          class="flex gap-2 py-0.5 text-slate-600 before:w-24 before:shrink-0 before:text-xs before:font-medium before:uppercase before:leading-5 before:text-slate-400 before:content-[attr(data-etiqueta)] group-data-[inactivo=true]:text-slate-400 md:table-cell md:px-4 md:py-3 md:before:hidden">
+      <td data-etiqueta="Disciplina" class="celda group-data-[inactivo=true]:text-slate-400">
         <span data-texto="disciplina"></span>
       </td>
 
-      <td data-etiqueta="Categoría"
-          class="flex gap-2 py-0.5 text-slate-600 before:w-24 before:shrink-0 before:text-xs before:font-medium before:uppercase before:leading-5 before:text-slate-400 before:content-[attr(data-etiqueta)] group-data-[inactivo=true]:text-slate-400 md:table-cell md:px-4 md:py-3 md:before:hidden">
+      <td data-etiqueta="Categoría" class="celda group-data-[inactivo=true]:text-slate-400">
         <span data-texto="categoria"></span>
       </td>
 
-      <td data-etiqueta="Acudiente"
-          class="flex gap-2 py-0.5 text-slate-600 before:w-24 before:shrink-0 before:text-xs before:font-medium before:uppercase before:leading-5 before:text-slate-400 before:content-[attr(data-etiqueta)] group-data-[inactivo=true]:text-slate-400 md:table-cell md:px-4 md:py-3 md:before:hidden">
-        <span data-texto="acudiente"></span>
+      <td data-etiqueta="Acudiente" class="celda group-data-[inactivo=true]:text-slate-400">
+        <div>
+          <p data-texto="acudiente"></p>
+          <p data-texto="telefono-acudiente" class="text-xs text-slate-500 group-data-[inactivo=true]:text-slate-400"></p>
+        </div>
       </td>
 
-      <td data-etiqueta="Pago"
-          class="flex gap-2 py-0.5 before:w-24 before:shrink-0 before:text-xs before:font-medium before:uppercase before:leading-5 before:text-slate-400 before:content-[attr(data-etiqueta)] md:table-cell md:px-4 md:py-3 md:before:hidden">
-        <span data-texto="estado-pago" class="rounded-full px-2.5 py-0.5 text-xs font-medium"></span>
+      <td data-etiqueta="Pago" class="celda">
+        <span data-texto="estado-pago" class="chip"></span>
       </td>
 
       <td class="mt-3 block md:mt-0 md:table-cell md:whitespace-nowrap md:px-4 md:py-3">
         <div class="flex flex-wrap gap-2 md:flex-nowrap md:justify-end">
-          <button type="button" data-accion="editar"
-                  class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            Editar
-          </button>
-          <button type="button" data-accion="desactivar"
-                  class="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-50 focus:outline-none focus:ring-2 focus:ring-rose-500">
-            Desactivar
-          </button>
-          <button type="button" data-accion="reactivar"
-                  class="hidden rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            Reactivar
-          </button>
+          <button type="button" data-accion="editar" class="boton boton-chico boton-secundario">Editar</button>
+          <button type="button" data-accion="desactivar" class="boton boton-chico border border-rose-200 bg-white text-rose-700 hover:bg-rose-50">Desactivar</button>
+          <button type="button" data-accion="reactivar" class="boton boton-chico hidden border border-emerald-300 bg-white text-emerald-700 hover:bg-emerald-50">Reactivar</button>
         </div>
       </td>
     </tr>
@@ -446,7 +496,7 @@
        1. SDK de Supabase  → crea window.supabase
        2. React, ReactDOM  → crean window.React y window.ReactDOM (versión 18, sin compilar)
           y htm            → crea window.htm: permite escribir "HTML dentro de JavaScript" sin compilar
-       3. config.js        → define SUPABASE_URL y SUPABASE_ANON_KEY
+       3. conexion.js      → define SUPABASE_URL y SUPABASE_ANON_KEY
        4. app.js           → la lógica de toda la aplicación, que usa lo anterior
        5. asistencia-react.js → la vista Asistencia, hecha con React (usa funciones de app.js)
        ================================================================= -->
@@ -454,7 +504,7 @@
   <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
-  <script src="config.js"></script>
+  <script src="conexion.js"></script>
   <script src="app.js"></script>
   <script src="asistencia-react.js"></script>
 </body>
