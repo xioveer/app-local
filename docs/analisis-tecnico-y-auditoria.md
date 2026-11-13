@@ -2,7 +2,7 @@
 
 > **Auditoría de seguridad · React frente a JavaScript puro · PostgreSQL frente a MongoDB**
 >
-> Código analizado: rama `claude/epic-planck-7swzxk`, commit `050ae03` · Fecha: 31 de octubre de 2026
+> Código analizado: rama `main`, commit `0ebddf8` · Fecha: 31 de octubre de 2026
 > Preparado por Claude (asistente de IA) a petición del equipo, como **material de estudio y apoyo teórico para la exposición**.
 > No es una certificación de seguridad ni asesoría legal.
 >
@@ -15,14 +15,14 @@
 Un documento de auditoría solo sirve si deja claro **qué se comprobó y qué se supone**. Cada afirmación importante lleva una etiqueta:
 
 | Etiqueta | Significa | ¿Puedo decirlo en la exposición como un hecho? |
-|---|---|---|
+| --- | --- | --- |
 | ✅ **Verificado** | Lo ejecuté y el resultado está guardado en [`docs/evidencia/`](evidencia/) | Sí, y puedes enseñar el archivo |
 | 🔎 **Análisis** | Sale de leer el código o el diseño; está razonado, pero no lo ejecuté | Sí, explicando que es un análisis |
 | 📚 **Conocimiento general** | Práctica habitual de la industria; **no la probé aquí** | Solo tras confirmarla en la documentación oficial |
 
 > **Regla de oro para exponer:** si el profesor pregunta «¿eso lo probaron?», la etiqueta te dice la respuesta honesta.
 
-**Contenido**
+### Contenido
 
 0. [Resumen ejecutivo](#0-resumen-ejecutivo)
 1. [Alcance, método y límites](#1-alcance-método-y-límites)
@@ -59,7 +59,7 @@ Un documento de auditoría solo sirve si deja claro **qué se comprobó y qué s
 *Severidad medida en el contexto de este proyecto: datos de menores de edad, hoy solo datos de prueba.*
 
 | ID | Hallazgo | Severidad | Evidencia | Estado |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | S-01 | El modo sin login deja la base abierta a cualquiera que tenga la *anon key* | **Crítica** si hay datos reales o se publica · Baja si es local y con datos de prueba | ✅ E1-E | Mitigado por diseño (doble interruptor, franja de aviso, `schema.sql` vuelve a cerrar). Queda el riesgo humano |
 | S-02 | Un solo rol: cualquier usuario con sesión puede todo; sin separación entre academias | **Alta** si los registros públicos están abiertos · Media si no | ✅ E1-F, E1-N | Abierto · propuesta probada: `rls_por_rol.sql` |
 | S-03 | Validaciones solo en el navegador: longitud, fecha futura, duplicados por mayúsculas | Media | ✅ E1-G, E1-H | Abierto · propuesta probada: `endurecimiento.sql` |
@@ -83,16 +83,16 @@ Probar sin login, en resumen: crear `config.js` desde `config.example.js` con la
 
 **Qué se auditó** (commit `050ae03`): `index.html`, `app.js` (1.425 líneas), `asistencia-react.js` (374), `config.example.js` y `supabase/*.sql` (`schema`, `seed`, `modo_sin_login`, `modo_con_login`).
 
-**Cómo se hizo**
+### Cómo se hizo
 
 | # | Método | Para qué sirvió |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Lectura del código y búsqueda de patrones peligrosos (`innerHTML`, `eval`, `document.write`…) | Hallazgos de código (🔎) |
 | 2 | **PostgreSQL 16 real, local**, con los roles `anon`, `authenticated` y `service_role` creados como en Supabase; se cargaron el `schema.sql` y el `seed.sql` **tal cual están en el repositorio** y se probó cada afirmación con `set role …` | Todo lo que dice *«la base responde…»* (pruebas **E1-\***) |
 | 3 | La aplicación real en Chromium automatizado (Playwright) contra un **Supabase simulado** (*mock*) que imita respuestas y errores | Comportamiento de la **aplicación** (pruebas **AT-\*** y benchmark) |
 | 4 | PostgreSQL local y *mingo* (motor de agregación de MongoDB escrito en JavaScript) | Parte 3 |
 
-**Límites (léelos antes de citar cifras)**
+### Límites (léelos antes de citar cifras)
 
 - **No se ejecutó nada en el proyecto Supabase real del equipo.** Lo que se afirma sobre «cómo responde la base» viene de PostgreSQL local, no del servicio de Supabase.
 - **El Supabase simulado no es Supabase.** Las pruebas AT-\* sirven para el comportamiento de *nuestra aplicación*; lo que prueba que la base rechaza algo es la prueba E1-\* equivalente en PostgreSQL real.
@@ -114,7 +114,7 @@ Probar sin login, en resumen: crear `config.js` desde `config.example.js` con la
 
 Todo lo que llega al navegador (HTML, CSS, JavaScript, `config.js`) puede ser leído **y modificado** por quien esté sentado delante, con las herramientas de desarrollo (F12). Por eso se distinguen dos zonas:
 
-```
+```text
    NAVEGADOR  (no confiable)                              SUPABASE  (confiable)
 ┌─────────────────────────────┐   HTTPS + anon key     ┌───────────────────────────────────┐
 │ index.html · app.js         │   (+ JWT si hay sesión)│  PostgREST ──► PostgreSQL          │
@@ -128,7 +128,7 @@ Todo lo que llega al navegador (HTML, CSS, JavaScript, `config.js`) puede ser le
 ```
 
 | Capa | Para qué sirve | ¿Puede un atacante saltársela? |
-|---|---|---|
+| --- | --- | --- |
 | Pantalla de login (cliente) | Comodidad: mostrar la interfaz correcta | **Sí**, es solo HTML/JS |
 | Validación del formulario (cliente) | Experiencia de usuario: avisar rápido | **Sí**, se reemplaza desde la consola (✅ AT-02) |
 | Supabase Auth | Comprobar identidad y emitir el JWT | No, corre en el servidor |
@@ -139,17 +139,17 @@ Todo lo que llega al navegador (HTML, CSS, JavaScript, `config.js`) puede ser le
 
 ### 2.2 Modelo de amenazas
 
-**Qué protegemos (activos)**
+#### Qué protegemos (activos)
 
 | Activo | Por qué importa |
-|---|---|
+| --- | --- |
 | Nombre, edad, acudiente y teléfono de **menores de edad** | Datos personales sensibles por definición |
 | Integridad de asistencia y pagos | Decisiones y cobros dependen de ellos |
 | Credencial del administrador | Da acceso a todo |
 | *anon key* | **Pública por diseño**; no es un activo secreto |
 | `service_role` / clave *secret* | **Secreta**: se salta RLS. No debe estar nunca en el navegador ni en GitHub (✅ revisado: no hay claves en el árbol del repositorio ni en su historial) |
 
-**Quién podría atacar (actores)**
+#### Quién podría atacar (actores)
 
 1. Visitante anónimo que conoce la URL (o la encuentra en GitHub Pages).
 2. Usuario con sesión curioso o malicioso (otro profesor).
@@ -160,7 +160,7 @@ Todo lo que llega al navegador (HTML, CSS, JavaScript, `config.js`) puede ser le
 **Análisis STRIDE** (una categoría de amenaza por fila):
 
 | Amenaza | En AcademiaHub | Protección actual | Brecha |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **S**poofing (suplantar) | Hacerse pasar por el administrador | Auth con contraseña (hash bcrypt en Supabase); registros públicos desactivados *(a verificar en el panel)* | Sin MFA (📚 Supabase lo ofrece) |
 | **T**ampering (alterar) | Cambiar datos por la consola o la API | RLS + `GRANT` + `CHECK`/`UNIQUE`/`FK` | S-03: reglas que solo están en el cliente |
 | **R**epudiation (negar) | «Yo no borré ese estudiante» | `actualizado_en` guarda *cuándo*, no *quién* | S-07: sin bitácora |
@@ -173,7 +173,7 @@ Todo lo que llega al navegador (HTML, CSS, JavaScript, `config.js`) puede ser le
 Seis ataques que un estudiante curioso, o alguien peor, podría intentar **desde el navegador**. Cada uno se automatizó contra la aplicación real.
 
 | ID | Ataque | Técnica | Resultado | Lección |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | **AT-01** | Saltarse el login «a la fuerza» | Mostrar la interfaz desde F12 y llamar `clienteSupabase.from("estudiantes").select()` desde la consola | La interfaz se puede mostrar, pero la base responde **42501 (sin permiso)**: ningún dato de estudiantes aparece en la página | Ocultar una pantalla no protege nada |
 | **AT-02** | Cambiar las reglas del cliente | Reemplazar funciones de `app.js` para quitar toda la validación, y enviar un menor sin acudiente | Una `const` de `config.js` no se puede reasignar (`TypeError`), **pero las funciones sí se pueden reemplazar**. Aun así la base rechazó al menor (`CHECK`, código 23514) y no se creó nada | La validación del cliente es experiencia de usuario, no seguridad |
 | **AT-03** | Valor manipulado en un `<select>` | Enviar `estado_pago = "constructor"` en vez de `al_dia / pendiente / vencido` | El cliente lo dejó pasar (porque `ESTILOS_DE_PAGO["constructor"]` existe en todo objeto de JavaScript); **la base lo rechazó con `CHECK`** y la app mostró un mensaje claro | Hueco menor en el cliente (S-08); la segunda capa lo cubrió |
@@ -298,7 +298,7 @@ AT-05b. Doble envío del formulario de disciplinas (Enter dos veces)
 
 > **Un fallo que fue mío, no de la aplicación.** En la primera corrida (antes del arreglo) también falló «el diálogo muestra el nombre como TEXTO». Era un error de **mi prueba** (elegía la fila por posición en lugar de por nombre exacto). Al corregir la prueba, desapareció sin tocar la aplicación. Se deja anotado porque en una auditoría hay que separar «el programa falló» de «mi herramienta falló».
 
-**Manipulaciones del DOM que se analizaron pero no se automatizaron (🔎)**
+#### Manipulaciones del DOM que se analizaron pero no se automatizaron (🔎)
 
 - *Quitar la clase `hidden` de un botón o reactivar uno deshabilitado:* cambia solo lo que se ve; la petición sigue pasando por RLS.
 - *Editar el atributo `data-id` de un botón de la tabla* para que «Desactivar» apunte a otro estudiante: es un ataque tipo **IDOR** (referencia directa a objeto). Hoy no es una brecha, porque todo usuario con sesión ya puede tocar a todos los estudiantes. **Dejaría de ser inocuo** en cuanto existan roles o varias academias: la defensa entonces es la política RLS, no esconder los números.
@@ -313,7 +313,7 @@ En Supabase no hay un «backend nuestro» entre el navegador y la base: el naveg
 **Lo que la base ya garantiza** (✅ E1-M, ejecutado sobre el `schema.sql` del repositorio):
 
 | Regla | Mecanismo | Prueba |
-|---|---|---|
+| --- | --- | --- |
 | Menor de 18 sin acudiente (nombre y teléfono) | `CHECK estudiantes_acudiente_menores` | M1 rechazado · M2 (acudiente de solo espacios) rechazado |
 | `estado_pago` solo `al_dia/pendiente/vencido` | `CHECK` | M3 rechaza `"constructor"` |
 | Edad entre 3 y 99 | `CHECK estudiantes_edad_valida` | M4 rechazado |
@@ -378,7 +378,7 @@ ERROR:  permission denied for table estudiantes
 **Lo que la base NO validaba** (✅ E1-G, antes de endurecer)
 
 | ID | Hueco | Qué pasó |
-|---|---|---|
+| --- | --- | --- |
 | G1 | Longitud | La base **aceptó un nombre de 5 MB** (5.120 kB). El límite de longitud solo está en el formulario |
 | G2 | Fecha de asistencia | La base aceptó una asistencia del **2099-01-01**. La regla «no hay asistencia futura» solo está en el navegador |
 | G3 | Disciplinas duplicadas | La base aceptó `FÚTBOL` aunque ya existía `Fútbol` (el `UNIQUE` distingue mayúsculas) |
@@ -430,7 +430,7 @@ create unique index if not exists disciplinas_nombre_unico_normalizado
 ```
 
 | Prueba | Resultado |
-|---|---|
+| --- | --- |
 | H1 · nombre de 101 letras / de 100 letras | rechazado / aceptado |
 | H2 · asistencia del 2099 / de hoy / de «mañana» / de pasado mañana | rechazada / aceptada / aceptada (margen por husos horarios) / rechazada |
 | H3 · `FÚTBOL` y `futbol` (sin tilde) frente a `Fútbol` | ambas rechazadas por el índice único normalizado · `Natación` aceptada |
@@ -512,7 +512,7 @@ La *anon key* (en paneles nuevos de Supabase se llama *publishable key*) identif
 Lo que la hace segura es lo que la base permite hacer **al rol `anon`**. Con `schema.sql` eso es: nada.
 
 | Clave | ¿Puede ir en el navegador? | Qué puede hacer |
-|---|---|---|
+| --- | --- | --- |
 | `anon` / *publishable* | **Sí** (es pública) | Solo lo que las políticas permitan al rol `anon`. Hoy, nada |
 | `service_role` / *secret* | **Jamás** | **Todo**: ignora RLS (✅ E1-D: lee las 10 filas sin tener política) |
 
@@ -539,7 +539,7 @@ Dos candados significan que, si alguien por error apaga uno, el otro sigue en pi
 #### 2.5.3 Escenarios: ¿qué pasa en cada caso?
 
 | # | Escenario | El navegador… | La base responde… | Resultado |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | 1 | **Normal** (login activo, `schema.sql`) | Pide login | `anon`: *permission denied* · `authenticated`: ve las 10 filas | ✅ Seguro (E1-A) |
 | 2 | **Login quitado solo en el cliente** (`REQUIERE_INICIO_DE_SESION = false`) pero la base **sigue cerrada** | Muestra la app y la franja de aviso | `anon`: *permission denied* | ✅ La app no filtra nada; muestra un mensaje que explica la solución (50 pruebas del modo sin login) |
 | 3 | **Login quitado + `modo_sin_login.sql`** | Entra directo | `anon` puede leer, crear, modificar y **borrar** todo | ⚠️ Cualquiera con la URL del proyecto y la *anon key* tiene control total (E1-E) |
@@ -705,7 +705,7 @@ create policy "Profesor corrige asistencias" on public.asistencias for update to
 Resultados (✅ E1-N, con un `auth.jwt()` imitando el de Supabase):
 
 | Quién | Qué pasó |
-|---|---|
+| --- | --- |
 | Admin | ve 10 estudiantes · edita · borra |
 | **Profesor** | ve 10 estudiantes y la asistencia · **no puede editar estudiantes (0 filas)** · **no puede borrar asistencias (0 filas)** · sí corrige una asistencia · **no puede crear un estudiante** (violación de RLS) |
 | Con sesión pero **sin rol** | ve **0** estudiantes |
@@ -721,7 +721,7 @@ Resultados (✅ E1-N, con un `auth.jwt()` imitando el de Supabase):
 Tres cosas distintas que se confunden mucho:
 
 | | ¿Reversible? | ¿Para qué? | Ejemplo | ¿Sirve para contraseñas? |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | **Hash** | No (solo se puede *comparar*) | Guardar contraseñas, verificar integridad | bcrypt, Argon2, SHA-256 | **Sí**, pero solo con algoritmos *lentos y con sal*: bcrypt o Argon2 |
 | **Cifrado** | Sí, con la clave | Guardar datos que luego hay que leer | AES, `pgp_sym_encrypt` | No (la contraseña no debe poder recuperarse) |
 | **Codificación** | Sí, **sin clave** | Representar datos | Base64, URL-encoding, el cuerpo de un JWT | **Nunca**: no protege nada |
@@ -743,7 +743,7 @@ Cómo leerlo:
 
 **¿Qué hace AcademiaHub con las contraseñas?** Nada: **no las toca**. Las recibe Supabase Auth, que guarda un hash (📚 bcrypt en `auth.users`). Es la mejor decisión de diseño del proyecto en este tema: **nunca escribas tu propio sistema de contraseñas** si puedes delegarlo.
 
-**Recomendaciones para el colegio**
+#### Recomendaciones para el colegio
 
 - Si algún día guardan contraseñas por su cuenta: bcrypt o Argon2, nunca MD5/SHA-1/SHA-256 sin más, ni cifrado reversible.
 - **Datos en reposo:** el teléfono del acudiente es un dato personal. Cifrarlo columna a columna (`pgp_sym_encrypt`) es posible, pero obliga a guardar la clave en algún sitio y a descifrar para buscar; para este proyecto, lo razonable es el cifrado de disco del proveedor (📚) más RLS bien hecho.
@@ -755,7 +755,7 @@ Cómo leerlo:
 Tres verbos con tres trabajos distintos:
 
 | Verbo | Pregunta que responde | Dónde ocurre | En AcademiaHub |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **Validar** | ¿Tiene la forma que espero? | Al **recibir** (cliente = UX; base = seguridad) | `validarNombreDeDisciplina`, `CHECK`, `UNIQUE`… |
 | **Sanitizar / normalizar** | ¿Puedo limpiarlo? | Al **recibir** | `trim()` y colapsar espacios repetidos |
 | **Escapar / codificar la salida** | ¿Cómo evito que el navegador lo *ejecute*? | Al **mostrar** | `textContent`, plantillas, React |
@@ -832,7 +832,7 @@ curl -s https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js \
 ### 2.8 Control de acceso: tres preguntas, tres capas
 
 | Pregunta | Concepto | Cómo se responde hoy | Mejora |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | ¿**Quién** eres? | Autenticación | Supabase Auth con correo y contraseña | MFA 📚, política de contraseñas fuertes 📚, registros públicos desactivados |
 | ¿**Qué** puedes hacer? | Autorización | RLS: «todo el que tenga sesión puede todo» | Roles (sección 2.5.6) |
 | ¿Cuánto **necesitas**? | Mínimo privilegio | `anon` sin permisos; `authenticated` con permisos completos | Profesor solo con asistencia; nadie con `DELETE` salvo el admin |
@@ -861,10 +861,10 @@ Buenas prácticas técnicas que ayudan en cualquier caso: pedir solo los datos n
 3. *«Validamos en el navegador para que sea cómodo y en la base para que sea seguro: dos capas.»*
 4. *«Los datos del usuario siempre se tratan como texto al mostrarlos, así que un `<script>` en un nombre solo se ve como texto.»*
 
-**Preguntas que pueden hacer, y cómo responder**
+#### Preguntas que pueden hacer, y cómo responder
 
 | Pregunta | Respuesta corta y honesta |
-|---|---|
+| --- | --- |
 | ¿Por qué se puede entrar sin login? | Es un modo de prueba, apagado por defecto, que necesita dos acciones explícitas y muestra una franja de aviso. Deja la base abierta, así que solo se usa en local y con datos de prueba |
 | ¿No es peligroso mostrar la anon key? | No: es pública por diseño. Peligroso sería mostrar la `service_role`. Lo que cuenta es lo que el rol `anon` puede hacer: con nuestro `schema.sql`, nada |
 | ¿Qué pasa si alguien edita el JavaScript con F12? | Solo afecta su pestaña. Las reglas importantes están en la base y la base no le hace caso (lo probamos reemplazando funciones: la base rechazó igual al menor sin acudiente) |
@@ -881,7 +881,7 @@ Buenas prácticas técnicas que ayudan en cualquier caso: pedir solo los datos n
 ### 3.1 Dos formas de pensar la misma pantalla
 
 | | **JavaScript puro («vainilla»)** | **React** |
-|---|---|---|
+| --- | --- | --- |
 | Estilo | **Imperativo**: «haz esto, luego esto» | **Declarativo**: «así debe verse con estos datos» |
 | Quién toca la pantalla | **Tú**: `textContent`, `replaceChildren()`, `classList.toggle()` | React: compara lo nuevo con lo anterior y cambia solo lo distinto |
 | Dónde vive la verdad | Repartida: variables **y** el DOM | En el **estado**; la pantalla es una consecuencia |
@@ -1108,7 +1108,7 @@ function PanelDeEstudiantes({ estudiantes, alEditar, alCambiarActivo }) {
 </details>
 
 | | Vainilla | React |
-|---|---|---|
+| --- | --- | --- |
 | Cómo se llena una fila | `querySelector` + `textContent` campo por campo | Se escribe el marcado con `${dato}` dentro |
 | Cómo cambia la pantalla al filtrar | `replaceChildren()` y recrear **todas** las filas | Se calcula la lista visible y React aplica la diferencia |
 | Dónde está el estado del buscador | En el DOM (`input.value`) y en variables sueltas | En un `useState` |
@@ -1125,7 +1125,7 @@ function PanelDeEstudiantes({ estudiantes, alEditar, alCambiarActivo }) {
 **Qué se midió.** Se tomó el código **real** de `app.js` (`crearFilaDeEstudiante`, la plantilla del HTML) y se comparó con un componente de React que genera **el mismo DOM** (19 nodos por fila en los dos, ✅ comprobado). Cada medida es la **mediana** de 15 repeticiones (9 para 5.000 filas), tras 2 de calentamiento, e incluye el cálculo de *layout* del navegador.
 
 | Escenario | Qué hace |
-|---|---|
+| --- | --- |
 | **S1** | Dibujar la tabla completa por primera vez |
 | **S2** | Escribir `estudiante 1` en el buscador, **tecla a tecla** (12 pulsaciones). La versión vainilla hace lo que hace nuestra app: vaciar y recrear las filas que coinciden |
 | **S3** | Cambiar **un** estudiante (su estado de pago) |
@@ -1133,7 +1133,7 @@ function PanelDeEstudiantes({ estudiantes, alEditar, alCambiarActivo }) {
 Tiempos en **milisegundos** (menos es mejor). *Vainilla (1 fila)* es una variante optimizada a mano que reemplaza solo la fila cambiada (no es lo que hace hoy la app).
 
 | Filas | **S1** vainilla | **S1** React | **S2** vainilla | **S2** React | **S3** vainilla (redibuja todo) | **S3** vainilla (1 fila) | **S3** React |
-|---:|---:|---:|---:|---:|---:|---:|---:|
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | 100 | 13,4 | 15,2 | 175,6 | 14,0 | 13,5 | **0,8** | 13,2 |
 | 300 ¹ | 41,0 | 43,8 | 619,7 | 38,0 | 41,9 | **1,9** | 24,8 |
 | 1.000 | 209,9 | **165,5** | 1.967,9 | **160,1** | 195,1 | **12,3** | 116,3 |
@@ -1149,7 +1149,7 @@ Tiempos en **milisegundos** (menos es mejor). *Vainilla (1 fila)* es una variant
 4. **Un vainilla optimizado a mano le gana a React al cambiar una fila:** 12,3 ms frente a 116,3 ms con 1.000 filas (≈ 9 veces), 41,5 frente a 577 ms con 5.000 (≈ 14 veces). Tiene sentido: con una sola fila cambiada, el vainilla toca una fila y React revisa las 1.000.
 5. **Moraleja:** React **no es más rápido por ser React**. Es más rápido que el vainilla *ingenuo* («borro todo y dibujo todo») y más lento que el vainilla *optimizado a mano*. Lo que compra React es que **el camino fácil sea razonablemente eficiente** sin escribir esa optimización para cada caso.
 
-**Advertencias (importantes para no exagerar en la exposición)**
+#### Advertencias (importantes para no exagerar en la exposición)
 
 - El «vainilla» de S2 es la versión **ingenua**. Una versión vainilla que solo oculte filas con la clase `hidden`, o que espere unos milisegundos antes de filtrar (*debounce*), **no se midió** y probablemente cerraría gran parte de la diferencia (🔎).
 - Los componentes de React **no usan `React.memo`**; con él, S3 probablemente mejoraría (📚, no medido).
@@ -1159,14 +1159,14 @@ Tiempos en **milisegundos** (menos es mejor). *Vainilla (1 fila)* es una variant
 ### 3.5 Tiempos de carga y peso
 
 | Librería | Tamaño | Comprimido (gzip) |
-|---|---:|---:|
+| --- | ---: | ---: |
 | `react` 18.3.1 | 10,5 KB | 4,2 KB |
 | `react-dom` 18.3.1 | 128,7 KB | 41,8 KB |
 | `htm` 3.1.1 | 1,3 KB | 0,7 KB |
 | **React + ReactDOM + htm** | **140,6 KB** | **46,7 KB** |
 | `supabase-js` 2.117.2 (lo que ya cargábamos) | 212,8 KB | 54,0 KB |
 
-*(KB = 1.024 bytes; medidos sobre los archivos publicados en npm, que son los que sirve el CDN.)*
+*KB = 1.024 bytes; medidos sobre los archivos publicados en npm, que son los que sirve el CDN.*
 
 - Añadir React **casi duplica** el JavaScript que se descarga: de ≈ 54 KB a ≈ 101 KB comprimidos (🔎 suma de los valores de arriba).
 - **Tiempo de ejecución** de los scripts al cargar la página (mediana de 9 cargas, sin contar la red): **11,6 ms** para React + ReactDOM + htm frente a **21,7 ms** para el SDK de Supabase (✅). Es decir, ejecutar React es barato; descargarlo es lo que pesa, sobre todo con mala conexión.
@@ -1178,7 +1178,7 @@ Tiempos en **milisegundos** (menos es mejor). *Vainilla (1 fila)* es una variant
 React **no reemplaza** lo que ya saben, se **suma**: para entender un error de React hay que entender el DOM, los eventos y `async/await`.
 
 | Concepto | Vainilla | React | ¿Es nuevo en React? |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | DOM, eventos, `fetch`/`async` | Imprescindible | Imprescindible | No |
 | Componente (una función que devuelve marcado) | — | Imprescindible | **Sí** |
 | *Props* (datos que entran) | — | Imprescindible | **Sí** |
@@ -1200,7 +1200,7 @@ React **no reemplaza** lo que ya saben, se **suma**: para entender un error de R
 ### 3.7 Mantenimiento
 
 | Criterio | Vainilla (como lo hicimos) | React |
-|---|---|---|
+| --- | --- | --- |
 | Reutilizar una pieza | Copiar HTML o escribir funciones que clonan plantillas | Componentes: una definición, muchos usos |
 | Mantener datos y pantalla sincronizados | Disciplina del equipo (hay que acordarse de cada actualización) | Automático a partir del estado |
 | Pruebas | Se prueba en el navegador completo (lo que hicimos) | Se pueden probar componentes aislados, pero necesita herramientas (📚) |
@@ -1212,7 +1212,7 @@ React **no reemplaza** lo que ya saben, se **suma**: para entender un error de R
 ### 3.8 Estrategias de migración
 
 | | Opción | Ventajas | Inconvenientes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | A | **Solo vainilla** (deshacer la isla) | Un solo modelo mental; sin librerías extra | Más repetición en vistas con mucho estado |
 | **B** | **Islas** (lo actual): React solo donde hay mucho estado | Aprendizaje gradual; el resto no se toca | Dos modelos y un puente que mantener |
 | C | Todo en React, por CDN + `htm` | Un solo modelo | Sin JSX; atascados en React 18; más peso inicial |
@@ -1232,7 +1232,7 @@ React **no reemplaza** lo que ya saben, se **suma**: para entender un error de R
 ### 3.9 Veredicto
 
 | Criterio | Ganador | Por qué |
-|---|---|---|
+| --- | --- | --- |
 | Velocidad con nuestro volumen | **Empate** | ≈ 14 ms en ambos con 100 filas |
 | Velocidad con miles de filas y búsqueda en vivo | **React** (frente al vainilla ingenuo) | 164 → 13 ms por tecla con 1.000 filas |
 | Velocidad con vainilla optimizado a mano | **Vainilla** | 12 ms frente a 116 ms al cambiar una fila |
@@ -1299,7 +1299,7 @@ MongoDB guarda **documentos** (JSON/BSON) dentro de **colecciones**. Hay tres di
 **Diseño C · Por «cubetas»** (un documento por estudiante y mes; 📚 patrón *bucket*): equilibra A y B, pero añade lógica de mantenimiento.
 
 | Necesidad | A · Referencias | B · Subdocumentos |
-|---|---|---|
+| --- | --- | --- |
 | Ver la ficha completa de un estudiante con su asistencia | Dos consultas o un `$lookup` | **Una lectura** (su punto fuerte) |
 | Dashboard del día (todos los estudiantes) | `$lookup` + `$filter` (✅ Q1) | Recorrer (`$unwind`) el arreglo de **todos** los estudiantes (🔎) |
 | Renombrar una disciplina | Se cambia en **un** documento | Se actualizan **todos** los estudiantes que la copian (🔎) |
@@ -1313,7 +1313,7 @@ MongoDB guarda **documentos** (JSON/BSON) dentro de **colecciones**. Hay tres di
 
 Se tomaron las 3 disciplinas y los 10 estudiantes de `seed.sql` (uno de ellos inactivo) y se les añadieron **11 registros de asistencia de prueba** (de los días 2026-10-11 y 2026-10-12; «hoy» es el 2026-10-12 en las consultas). Con esos datos se ejecutaron las consultas en **PostgreSQL**, se exportaron a **MongoDB** (Diseño A) y se corrieron las mismas tres preguntas del Dashboard.
 
-**Q1 · Métricas de asistencia de hoy**
+#### Q1 · Métricas de asistencia de hoy
 
 ```sql
 -- Métricas de asistencia de HOY (una sola consulta; LEFT JOIN conserva a quien no tiene registro)
@@ -1352,7 +1352,7 @@ const q1 = [
 ];
 ```
 
-**Q2 · Asistencia de hoy por disciplina** (tres tablas / dos `$lookup`)
+#### Q2 · Asistencia de hoy por disciplina (tres tablas / dos `$lookup`)
 
 ```sql
 -- Asistencia de hoy por disciplina (JOIN de tres tablas)
@@ -1386,7 +1386,7 @@ const q2 = [
 ];
 ```
 
-**Q3 · Estudiantes activos por estado de pago**
+#### Q3 · Estudiantes activos por estado de pago
 
 ```sql
 -- Estudiantes activos por estado de pago
@@ -1410,13 +1410,13 @@ const q3 = [
 **Resultado (✅ idénticos):**
 
 | Consulta | PostgreSQL | MongoDB (*mingo*) | ¿Igual? |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Q1 | 7 presentes · 2 ausentes · 9 registrados · 0 sin registrar · 77,8 % | 7 · 2 · 9 · 0 · 77,8 % | ✅ |
 | Q2 | Danza folclórica 2/1/0 · Fútbol 4/3/0 · Guitarra 3/3/0 *(estudiantes/presentes/sin registrar)* | igual | ✅ |
 | Q3 | al_dia 5 · pendiente 2 · vencido 2 | igual | ✅ |
 | Caso borde (nadie registrado) | porcentaje `NULL` | porcentaje `null` | ✅ |
 
-**Qué enseña la comparación**
+#### Qué enseña la comparación
 
 - **Mismo resultado, distinto esfuerzo.** Q1 ocupa ≈ 9 líneas de SQL y ≈ 20 de *pipeline*; Q2, ≈ 9 frente a ≈ 15; Q3, 4 frente a 6. (Contar líneas es una medida tosca; lo que importa es que en SQL el cruce entre tablas es **una palabra** —`JOIN`— y en MongoDB hay que armarlo con `$lookup`, `$unwind` y `$filter`.)
 - **La división por cero** hay que cuidarla en ambos: `nullif(…, 0)` en SQL y un `$cond` en el *pipeline* (📚 `$divide` entre cero da error en MongoDB; en la prueba solo se verificó que con la protección sale `null`).
@@ -1467,7 +1467,7 @@ Tamaños BSON: {"una_asistencia_bytes":37,"estudiante_sin_asistencias_bytes":238
 ### 4.4 Integridad referencial y reglas de negocio
 
 | Regla de AcademiaHub | PostgreSQL / Supabase | MongoDB (📚 práctica habitual; confirmar en la documentación) |
-|---|---|---|
+| --- | --- | --- |
 | La disciplina de un estudiante debe existir | `FOREIGN KEY` ✅ M5 | No hay claves foráneas: validar en la aplicación o copiar la disciplina dentro del estudiante |
 | Un registro por estudiante y día | `UNIQUE (estudiante_id, fecha)` ✅ M6 | Índice único compuesto (Diseño A); con arreglo embebido, no basta con un índice |
 | Valores permitidos (`estado_pago`, edad 3 a 99) | `CHECK` ✅ M3, M4 | Validador `$jsonSchema` en la colección |
@@ -1485,7 +1485,7 @@ Tamaños BSON: {"una_asistencia_bytes":37,"estudiante_sin_asistencias_bytes":238
 Un documento de MongoDB no puede pasar de **16 MB** (📚). Se calculó el tamaño real de los documentos BSON del Diseño B (✅ medido con la librería `bson`):
 
 | Concepto | Tamaño |
-|---|---:|
+| --- | ---: |
 | Una entrada de asistencia `{ fecha, asistio }` | 37 bytes |
 | Un estudiante sin asistencias | 238 bytes |
 | Con **un año** de clases (156 sesiones) | 6,5 KB |
@@ -1508,7 +1508,7 @@ Ninguno describe a AcademiaHub hoy.
 ### 4.7 Veredicto técnico
 
 | Criterio | PostgreSQL / Supabase | MongoDB |
-|---|---|---|
+| --- | --- | --- |
 | Relaciones entre entidades (1:N) | **Natural** (claves foráneas, `JOIN`) | Se simula con referencias o copias |
 | Integridad garantizada por la base | **Sí** (`FK`, `UNIQUE`, `CHECK`, cascada) ✅ | Parcial; gran parte recae en la aplicación |
 | Consultas que cruzan tablas (dashboard) | **Más corto y claro** ✅ | Posible, más largo (`$lookup`) ✅ |
@@ -1528,7 +1528,7 @@ Ninguno describe a AcademiaHub hoy.
 *Esfuerzos aproximados (estimación mía, no medida).*
 
 | Prioridad | Acción | Esfuerzo | Hallazgo |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **P0 · antes de usar datos reales o publicar** | Comprobar en el panel que **«Allow new users to sign up» está desactivado** | 5 min | S-09, S-02 |
 | P0 | Tras probar sin login, ejecutar `modo_con_login.sql` y volver a `REQUIERE_INICIO_DE_SESION = true` | 5 min | S-01 |
 | P0 | Usar el modo sin login **solo en local, con datos de prueba y en un proyecto de pruebas** | — | S-01 |
@@ -1550,7 +1550,7 @@ Ninguno describe a AcademiaHub hoy.
 ### Anexo A · Índice de la evidencia ([`docs/evidencia/`](evidencia/))
 
 | Archivo | Qué demuestra | Cómo se obtuvo |
-|---|---|---|
+| --- | --- | --- |
 | `seguridad/01_rls_y_permisos.txt` | E1-A a E1-F: RLS, `GRANT`, `service_role`, modo sin login | PostgreSQL 16 local con los roles de Supabase y el `schema.sql` del repositorio |
 | `seguridad/02_huecos_y_endurecimiento.txt` | E1-G a E1-J: huecos de validación, endurecimiento, `unaccent`, bcrypt | Ídem |
 | `seguridad/03_roles_e_inyeccion_sql.txt` | E1-K y E1-L: política por rol (versión inicial) e inyección SQL | Ídem |
@@ -1578,13 +1578,19 @@ Ninguno describe a AcademiaHub hoy.
   # sin resultados = ninguno de esos patrones
   ```
 
-- **Repetir la comparación con MongoDB:** las instrucciones están al principio de `docs/evidencia/sql_vs_mongo/mongo_pipelines.js`.
+- **Repetir la comparación con MongoDB:** se usa una carpeta temporal, sin instalar nada en el proyecto. Probado con mingo 7.2.7 y bson 7.3.3 (Node 22). mingo es un motor de agregación compatible con MongoDB escrito en JavaScript, no un servidor MongoDB real.
+
+  ```bash
+  mkdir /tmp/prueba-mongo && cd /tmp/prueba-mongo && npm install mingo bson
+  NODE_PATH=/tmp/prueba-mongo/node_modules node docs/evidencia/sql_vs_mongo/mongo_pipelines.js
+  ```
+
 - Las pruebas de navegador y el *benchmark* **no están** en el repositorio (necesitan Node y Playwright).
 
 ### Anexo C · Glosario
 
 | Término | Significado |
-|---|---|
+| --- | --- |
 | **RLS** (*Row Level Security*) | Reglas dentro de la base que dicen qué filas puede ver o cambiar cada rol |
 | **Rol** (`anon`, `authenticated`, `service_role`) | «Quién eres» para la base de datos; define qué te dejan hacer |
 | **JWT** | Ficha firmada que prueba quién eres; su contenido se puede leer, lo que no se puede es falsificarlo |

@@ -1,27 +1,16 @@
-// ---------------------------------------------------------------------------------------------
-// CÓMO EJECUTARLO (no hace falta instalar nada en el proyecto; se usa una carpeta temporal):
-//   mkdir /tmp/prueba-mongo && cd /tmp/prueba-mongo && npm install mingo bson
-//   NODE_PATH=/tmp/prueba-mongo/node_modules node docs/evidencia/sql_vs_mongo/mongo_pipelines.js
-// Probado con mingo 7.2.7 y bson 7.3.3 (Node 22). OJO: mingo es un motor de agregación escrito
-// en JavaScript, compatible con MongoDB, pero NO es un servidor MongoDB real.
-// ---------------------------------------------------------------------------------------------
-// Las MISMAS métricas con el lenguaje de agregación de MongoDB, ejecutadas con "mingo"
-// (un motor de agregación compatible escrito en JavaScript; NO es un servidor MongoDB real).
 const fs = require('fs');
 const path = require('path');
-const { Aggregator } = require('mingo');      // la entrada principal ya carga todos los operadores ($lookup, $group, $filter...)
+const { Aggregator } = require('mingo');
 const { BSON } = require('bson');
 
-const SP = __dirname;   // la carpeta donde está este archivo (aquí también está datos.json)
+const SP = __dirname;
 const datos = JSON.parse(fs.readFileSync(path.join(SP, 'datos.json'), 'utf8'));
 
-// "db.<colección>": en MongoDB serían tres colecciones, con referencias por id (no hay claves foráneas)
 const colecciones = { disciplinas: datos.disciplinas, estudiantes: datos.estudiantes, asistencias: datos.asistencias };
 const correr = (coleccion, pipeline) => new Aggregator(pipeline, { collectionResolver: (nombre) => colecciones[nombre] }).run(colecciones[coleccion]);
 
 const HOY = '2026-10-12';
 
-// ---------- Q1: métricas de asistencia de hoy ----------
 const q1 = [
   { $match: { activo: true } },
   { $lookup: { from: 'asistencias', localField: '_id', foreignField: 'estudiante_id', as: 'registros' } },
@@ -38,12 +27,10 @@ const q1 = [
       ausentes: { $subtract: ['$registrados', '$presentes'] },
       registrados: 1,
       sin_registrar: { $subtract: ['$activos', '$registrados'] },
-      // OJO: $divide por cero da ERROR en MongoDB, por eso el $cond
       porcentaje: { $cond: [{ $gt: ['$registrados', 0] }, { $round: [{ $multiply: [100, { $divide: ['$presentes', '$registrados'] }] }, 1] }, null] },
   } },
 ];
 
-// ---------- Q2: por disciplina (dos $lookup: la "unión" hay que armarla a mano) ----------
 const q2 = [
   { $match: { activo: true } },
   { $lookup: { from: 'disciplinas', localField: 'disciplina_id', foreignField: '_id', as: 'disciplina' } },
@@ -60,7 +47,6 @@ const q2 = [
   { $sort: { disciplina: 1 } },
 ];
 
-// ---------- Q3: pagos ----------
 const q3 = [
   { $match: { activo: true } },
   { $group: { _id: '$estado_pago', estudiantes: { $sum: 1 } } },
@@ -75,21 +61,17 @@ console.log('Q1 MongoDB:', JSON.stringify(r1));
 console.log('Q2 MongoDB:', JSON.stringify(r2));
 console.log('Q3 MongoDB:', JSON.stringify(r3));
 
-// ---------- Comparación con SQL (valores obtenidos de PostgreSQL arriba) ----------
 const sql = { q1: { presentes: 7, ausentes: 2, registrados: 9, sin_registrar: 0, porcentaje: 77.8 },
   q2: [['Danza folclórica', 2, 1, 0], ['Fútbol', 4, 3, 0], ['Guitarra', 3, 3, 0]], q3: [['al_dia', 5], ['pendiente', 2], ['vencido', 2]] };
 const iguales = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-// se comparan por valor (el orden de las claves de un objeto no importa en un documento)
 const ok1 = Object.keys(sql.q1).every((k) => r1[k] === sql.q1[k]) && Object.keys(r1).length === Object.keys(sql.q1).length;
 const ok2 = iguales(r2.map((x) => [x.disciplina, x.estudiantes, x.presentes, x.sin_registrar]), sql.q2);
 const ok3 = iguales(r3.map((x) => [x.estado_pago, x.estudiantes]), sql.q3);
 console.log(`\nIDÉNTICO a SQL → Q1: ${ok1} | Q2: ${ok2} | Q3: ${ok3}`);
 
-// ---------- Caso borde: sin registros hoy ----------
 const q1Vacio = JSON.parse(JSON.stringify(q1)); q1Vacio[2].$addFields.hoy.$filter.cond.$eq[1] = '2099-01-01';
 console.log('Q1 sin registros (fecha sin datos):', JSON.stringify(correr('estudiantes', q1Vacio)[0]), '← porcentaje null: se evitó la división por cero');
 
-// ---------- Tamaño real de documentos BSON (para el análisis de "subdocumentos") ----------
 const unaAsistencia = { fecha: '2026-10-12', asistio: true };
 const bytes = (o) => BSON.calculateObjectSize(o);
 const estudianteBase = { _id: 1, nombre_completo: 'Santiago Pérez Mora', edad: 9, disciplina: { id: 1, nombre: 'Fútbol' }, categoria: 'Infantil', acudiente_nombre: 'Marta Mora', acudiente_telefono: '300 000 0001', estado_pago: 'al_dia', activo: true };

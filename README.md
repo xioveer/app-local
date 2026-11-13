@@ -2,7 +2,7 @@
 
 Aplicación web para administrar una **academia formativa** de cualquier tipo: deportes, música, danza, artes, etc. Permite llevar el registro de estudiantes, el estado de sus pagos y la asistencia diaria, con un panel de resumen.
 
-Es un proyecto escolar hecho con herramientas simples: **HTML, Tailwind CSS y JavaScript** en el navegador, y **Supabase** como base de datos. Casi todo está escrito en JavaScript "vainilla" (sin frameworks). La excepción es la **vista de Asistencia, hecha con React**, para ver en la práctica dónde ayuda un framework y dónde no hace falta (ver [sección 9.4](#94-dónde-usamos-react-y-qué-mejora)). Todo se carga por CDN: no usa npm ni compiladores.
+Es un proyecto escolar hecho con herramientas simples: **HTML, Tailwind CSS y JavaScript** en el navegador, y **Supabase** como base de datos. Casi todo está escrito en JavaScript "vainilla" (sin frameworks). La excepción es la **vista de Asistencia, hecha con React**, para ver en la práctica dónde ayuda un framework y dónde no hace falta (ver [sección 9.4](#94-dónde-usamos-react-y-qué-mejora)). Las librerías se cargan por CDN y los estilos de Tailwind ya vienen compilados en `estilos.css`, así que para **usar** la app no hace falta npm. Solo si cambias clases de Tailwind hay que regenerar `estilos.css` con `npm run css` (ver [sección 9.3](#93-cómo-está-hecho-el-diseño)).
 
 > **Versión de demostración: no tiene inicio de sesión.** La aplicación abre directo y la base de datos acepta a cualquiera que tenga la dirección de la página. Sirve para mostrar el proyecto con **datos de prueba**; no es para guardar datos reales de personas. La [sección 6](#6-seguridad-qué-significa-no-tener-inicio-de-sesión) explica por qué y cómo cerrarla.
 
@@ -28,7 +28,7 @@ Es un proyecto escolar hecho con herramientas simples: **HTML, Tailwind CSS y Ja
 La aplicación tiene cuatro secciones, a las que se entra por las pestañas del encabezado:
 
 | Sección | Qué permite hacer |
-|---|---|
+| --- | --- |
 | **Dashboard** | Ver cómo va la asistencia de hoy (porcentaje, presentes, ausentes y cuántos faltan por registrar), cuántos estudiantes activos hay y cuántos están al día, pendientes o vencidos en pagos. Se actualiza cada vez que entras y tiene un botón **Actualizar**. |
 | **Estudiantes** | Crear, editar y desactivar estudiantes. Buscar por nombre y filtrar por disciplina (se pueden combinar). Marcar **Mostrar inactivos** para ver a los desactivados y **reactivarlos**. Si el estudiante es menor de 18 años, el nombre y el teléfono del acudiente son obligatorios. |
 | **Asistencia** | Elegir una fecha (hoy por defecto), marcar con un interruptor quién está presente o ausente y guardar. Se puede filtrar por disciplina; se guarda lo que se ve en la lista. Si ya había asistencia guardada ese día, se actualiza (no se duplica). |
@@ -44,9 +44,9 @@ Otras características:
 ## 2. Tecnologías
 
 | Tecnología | Para qué se usa | Cómo se carga |
-|---|---|---|
+| --- | --- | --- |
 | HTML5 | Estructura de la página (una sola página con varias "vistas") | `index.html` |
-| Tailwind CSS 3 | Estilos y diseño responsive | CDN: `https://cdn.tailwindcss.com` |
+| Tailwind CSS 3.4.17 | Estilos y diseño responsive | Compilado en `estilos.css` (fuente: `estilos.entrada.css` + `tailwind.config.js`) |
 | Barlow y Barlow Condensed | Las letras de la aplicación | Google Fonts |
 | JavaScript (vainilla) | Casi toda la lógica: DOM, `async/await`, validaciones | `app.js` |
 | React 18.3.1 + ReactDOM | La vista de **Asistencia** (componentes y estado) | CDN (jsDelivr): `react@18.3.1` y `react-dom@18.3.1`, versión para `<script>` (sin compilar) |
@@ -61,7 +61,7 @@ Requisito: un navegador actual (Chrome, Edge, Firefox, Brave o Safari recientes)
 
 ## 3. Estructura de archivos
 
-```
+```text
 app-local/
 ├── index.html            Estructura de la página: encabezado con pestañas, las 4 vistas, el diálogo
 │                         de confirmación y la plantilla de filas. Arriba están los colores, las
@@ -134,7 +134,7 @@ Con los datos de `seed.sql` puedes recorrer esta lista. Cada paso dice qué debe
 6. **Asistencia (por disciplina):** sigue estos pasos en orden y mira el Dashboard después de cada uno. Todos parten de "ninguna asistencia guardada hoy" (si ya probaste antes, mira la nota que sigue):
 
    | Paso | Qué haces en **Asistencia** | Qué debe decir el **Dashboard** |
-   |---|---|---|
+   | --- | --- | --- |
    | a | Elige *Fútbol* (4 estudiantes), marca a **Samuel** como ausente y pulsa **Guardar asistencia** | Presentes 3 · Ausentes 1 · **75 %** · Sin registrar **5** |
    | b | Elige *Guitarra* (3 estudiantes), déjalos a todos presentes y guarda | Presentes 6 · Ausentes 1 · **85,7 %** · Sin registrar **2** |
    | c | Elige *Danza folclórica* (2 estudiantes), marca a **Laura** como ausente y guarda | Presentes 7 · Ausentes 2 · **77,8 %** · Sin registrar **0** |
@@ -170,7 +170,7 @@ truncate public.asistencias, public.estudiantes, public.disciplinas restart iden
 Eso es aceptable para una demostración con los estudiantes ficticios de `seed.sql`. **No es aceptable para datos reales.**
 
 | Clave | ¿Puede estar en el navegador? | Qué puede hacer |
-|---|---|---|
+| --- | --- | --- |
 | `anon` / `publishable` | **Sí** (es pública) | Solo lo que permitan las políticas RLS. En esta versión, leer y escribir las tres tablas. |
 | `service_role` / `secret` | **Jamás** | Todo: ignora RLS. |
 
@@ -187,10 +187,10 @@ Eso es aceptable para una demostración con los estudiantes ficticios de `seed.s
 ## 7. Solución de problemas
 
 | Qué ves | Causa probable | Qué hacer |
-|---|---|---|
+| --- | --- | --- |
 | Pantalla *«La aplicación no pudo empezar»* con *«Faltan los datos de conexión…»* | `conexion.js` no está junto a `index.html`, tiene otro nombre o los valores están vacíos | Revisa que el archivo exista y tenga `SUPABASE_URL` y `SUPABASE_ANON_KEY`. Si publicaste en Vercel, comprueba que esté subido a GitHub. |
 | Pantalla *«La aplicación no pudo empezar»* con *«No se pudo cargar la librería de Supabase»* | Sin Internet, o la red (por ejemplo la del colegio) o un bloqueador bloquea `cdn.jsdelivr.net` | Revisa la conexión, desactiva el bloqueador o prueba con otra red. |
-| La página se ve sin colores ni diseño | Se bloqueó `cdn.tailwindcss.com` | Igual que arriba: revisa Internet o el bloqueador. |
+| La página se ve sin colores ni diseño | Falta `estilos.css` junto a `index.html` | Copia `estilos.css` al mismo sitio, o regenéralo con `npm install` y `npm run css`. |
 | Las letras se ven distintas (más anchas) | No cargó Google Fonts | La aplicación funciona igual con la letra del sistema. |
 | *«No se pudo conectar con Supabase…»* | Sin Internet, o el proyecto está **pausado** (los proyectos gratuitos se pausan tras unos días sin uso) | Entra a supabase.com y, si dice *Paused*, pulsa **Restore project**. Tarda uno o dos minutos. |
 | *«La base de datos no permite el acceso…»* | La base está cerrada: no se ejecutó `modo_sin_login.sql`, o se volvió a ejecutar `schema.sql` o `modo_con_login.sql` | Ejecuta `supabase/modo_sin_login.sql` en el SQL Editor. |
@@ -201,7 +201,7 @@ Eso es aceptable para una demostración con los estudiantes ficticios de `seed.s
 | El Dashboard dice *«Aún no se ha tomado asistencia hoy»* aunque guardaste | Guardaste otra fecha, o no pulsaste **Guardar asistencia** | En **Asistencia** comprueba la fecha: el Dashboard solo cuenta *hoy*. |
 | La fecha de «hoy» no es la correcta | La aplicación usa el reloj y la zona horaria de **tu computador** | Revisa la fecha y la zona horaria del sistema. |
 | Subí cambios a GitHub y la página publicada sigue igual | Vercel tarda cerca de un minuto en publicar, o el navegador guardó la versión anterior | Espera un momento y recarga sin caché (`Ctrl + F5`). |
-| En la consola del navegador aparece *«cdn.tailwindcss.com should not be used in production»* | Es un aviso normal del CDN de Tailwind | Se puede ignorar en un proyecto escolar (ver [sección 10](#10-límites-conocidos-y-mejoras-posibles)). |
+| Una clase de Tailwind nueva no tiene efecto | `estilos.css` solo incluye las clases que ya se usaban al compilarlo | Ejecuta `npm run css` (o `npm run css:vigilar` mientras editas). |
 | Al hacer `git pull` aparece un `config.js` viejo en tu carpeta | Era el archivo de conexión anterior; ya no se usa | Puedes borrarlo. La aplicación ahora lee `conexion.js`. |
 
 Consulta para encontrar a los menores sin acudiente (se ejecuta en el SQL Editor):
@@ -244,7 +244,7 @@ Esta sección está pensada para la exposición en el colegio.
 
 Hay tres piezas:
 
-```
+```text
  ┌───────────────────────────────┐
  │  1. NAVEGADOR (la persona)    │   index.html + app.js (+ Tailwind y React)
  │     ve pantallas, hace clic,  │   Aquí vive TODO el código que escribimos.
@@ -276,7 +276,7 @@ En palabras sencillas:
 - **El SDK** es el "mensajero": lleva y trae mensajes entre el navegador y Supabase.
 - **Supabase** es el "archivo con guardia": guarda los datos, decide qué puede hacer cada rol y rechaza los datos que no cumplen las reglas, aunque alguien se salte nuestra página.
 
-**Ejemplo del flujo de datos: guardar la asistencia**
+#### Ejemplo del flujo de datos: guardar la asistencia
 
 1. La persona mueve los interruptores. El componente de React anota las marcas en su **estado** (`anotarMarca`) y vuelve a dibujar el resumen y las etiquetas; todavía no se envía nada.
 2. Pulsa **Guardar asistencia**. La función `guardar` del componente arma una lista de registros: `{ estudiante_id, fecha, asistio }`, uno por estudiante de la lista.
@@ -284,10 +284,10 @@ En palabras sencillas:
 4. Supabase revisa: *¿RLS lo permite?* Después, por cada registro, mira la regla `UNIQUE (estudiante_id, fecha)`: si ese estudiante ya tenía registro ese día, lo **actualiza**; si no, lo **crea**.
 5. Si todo sale bien, la aplicación muestra un aviso verde y vuelve a leer lo guardado (`cargarFecha`, que usa `consultarAsistenciaDeUnaFecha`). Si algo falla, `describirError` lo traduce a español y se muestra un aviso rojo.
 
-**Dónde está cada cosa en `app.js` y `asistencia-react.js`**
+#### Dónde está cada cosa en `app.js` y `asistencia-react.js`
 
 | Sección | Qué contiene | Funciones de ejemplo |
-|---|---|---|
+| --- | --- | --- |
 | 1. Configuración | El cliente de Supabase, la memoria de la app (`estado`) y las referencias a elementos del HTML | `crearClienteSupabase`, `guardarReferenciasDelDOM` |
 | 2. Utilidades | Avisos, indicador de "cargando", traducción de errores, diálogo de confirmación, iniciales | `mostrarAviso`, `describirError`, `pedirConfirmacion`, `obtenerIniciales` |
 | 3. Disciplinas | Listar y agregar disciplinas | `cargarDisciplinas`, `agregarDisciplina` |
@@ -303,16 +303,16 @@ En palabras sencillas:
 Todo el diseño está en la parte de arriba de `index.html`, en tres bloques cortos:
 
 1. **Las letras.** Dos familias de Google Fonts: *Barlow* para los textos y *Barlow Condensed* (más angosta, como los números de una camiseta o de un marcador) para títulos y cifras.
-2. **Los colores y las letras como clases de Tailwind.** El bloque `tailwind.config` les pone nombre, y a partir de ahí existen clases como `bg-tinta`, `text-sol` o `font-titulo`:
+2. **Los colores y las letras como clases de Tailwind.** El archivo `tailwind.config.js` les pone nombre, y a partir de ahí existen clases como `bg-tinta`, `text-sol` o `font-titulo`:
 
    | Nombre | Color | Dónde se usa |
-   |---|---|---|
+   | --- | --- | --- |
    | `tinta` | Azul oscuro `#0C1F4A` | Encabezado, títulos, botones principales y el marcador de asistencia |
    | `sol` | Amarillo `#FFC629` | El color que resalta: el escudo, el porcentaje del marcador y los botones sobre fondo azul |
    | `papel` | Gris muy claro `#F1F4F9` | El fondo de la página |
 
    Los estados usan los colores de Tailwind: verde (al día, presente), naranja (pendiente, sin registrar) y rojo (vencido, ausente, errores). Cada estado lleva siempre su texto, no depende solo del color.
-3. **Las clases propias.** En `<style type="text/tailwindcss">` se definen nombres cortos que juntan varias clases de Tailwind con `@apply`: `tarjeta`, `boton` (+ `boton-principal`, `boton-secundario`, `boton-sol`, `boton-peligro`, `boton-chico`), `campo`, `etiqueta`, `chip`, `iniciales`, `pestana`, `celda`, `vacio`. Así un botón se escribe `class="boton boton-principal"` en vez de repetir quince clases cada vez, y si se cambia el estilo en un sitio cambia en toda la aplicación.
+3. **Las clases propias.** En `estilos.entrada.css` se definen nombres cortos que juntan varias clases de Tailwind con `@apply`: `tarjeta`, `boton` (+ `boton-principal`, `boton-secundario`, `boton-sol`, `boton-peligro`, `boton-chico`), `campo`, `etiqueta`, `chip`, `iniciales`, `pestana`, `celda`, `vacio`. Así un botón se escribe `class="boton boton-principal"` en vez de repetir quince clases cada vez, y si se cambia el estilo en un sitio cambia en toda la aplicación.
 
 Ideas del diseño que se pueden contar en la exposición:
 
@@ -363,7 +363,7 @@ const ausentes = visibles.length - presentes;
 **Qué mejoró (cifras medidas cuando se pasó esta vista a React):**
 
 | | Antes (vainilla) | Después (React) |
-|---|---|---|
+| --- | --- | --- |
 | Funciones cuyo único trabajo era mantener la pantalla igual a los datos | 5 (`pintarEstadoDelInterruptor`, `crearFilaDeAsistencia`, `actualizarResumenDeAsistencia`, `dibujarListaDeAsistencia`, `limpiarAsistenciaEnPantalla`) | 0: lo hace React |
 | Cambios hechos a mano sobre la pantalla dentro de la vista (`textContent =`, `className =`, `checked =`, `value =`, `classList`) | 16 | 0 |
 | Datos de la asistencia en la variable compartida `estado` (cualquier parte del programa podía cambiarlos) | 40 usos | 0: viven dentro del componente |
@@ -384,7 +384,7 @@ const ausentes = visibles.length - presentes;
 ### 9.5 Glosario corto
 
 | Término | Qué significa | Dónde se ve en el proyecto |
-|---|---|---|
+| --- | --- | --- |
 | **SPA** (*Single Page Application*) | Una aplicación de **una sola página**: no se recarga al cambiar de sección. JavaScript muestra unas secciones y oculta otras. | `index.html` tiene las 4 vistas; `mostrarVista` las muestra u oculta |
 | **DOM** | La versión de la página HTML como un "árbol de objetos" que JavaScript puede leer y cambiar. | `document.getElementById(...)`, `textContent`, `classList` |
 | **async / await** | Forma de **esperar** algo lento (como una respuesta de Internet) sin congelar la página. `await` pausa solo esa función hasta que llega la respuesta. | Casi todas las funciones que hablan con Supabase: `async function cargarEstudiantes()` |
@@ -396,8 +396,8 @@ const ausentes = visibles.length - presentes;
 | **CHECK** | Una regla de PostgreSQL que **rechaza** filas que no la cumplan. | `edad between 3 and 99`; los menores de 18 deben tener acudiente |
 | **Validación en dos capas** | Revisar los datos **dos veces**: primero en el formulario (rápido, con mensajes amables) y otra vez en la base de datos (la última palabra, que nadie puede saltarse). | `validarEstudiante` en `app.js` + `CHECK` en `schema.sql` |
 | **SDK** | Una librería con funciones ya hechas para usar un servicio. | `supabase-js`, que cargamos por CDN |
-| **CDN** | Un servidor en Internet que entrega librerías por una URL. | Tailwind, `supabase-js`, React y `htm` en `index.html` |
-| **`@apply`** | Instrucción de Tailwind para crear una clase propia que junta varias clases suyas. | Las clases `boton`, `campo`, `tarjeta`… en `index.html` |
+| **CDN** | Un servidor en Internet que entrega librerías por una URL. | `supabase-js`, React y `htm` en `index.html` |
+| **`@apply`** | Instrucción de Tailwind para crear una clase propia que junta varias clases suyas. | Las clases `boton`, `campo`, `tarjeta`… en `estilos.entrada.css` |
 | **React** | Una librería para construir pantallas. En vez de decir *cómo cambiar* la pantalla paso a paso, se describe *cómo se ve* para unos datos, y React la actualiza sola. | La vista de Asistencia (`asistencia-react.js`) |
 | **Componente** | Una función de React que devuelve un trozo de pantalla. Se pueden reutilizar y combinar, como piezas de Lego. | `FilaDeAsistencia` (una fila) dentro de `VistaDeAsistencia` (toda la vista) |
 | **Estado** (*state*) | Los datos que, cuando cambian, hacen que React vuelva a dibujar el componente. | `const [marcas, setMarcas] = useState({})` |
@@ -408,7 +408,7 @@ const ausentes = visibles.length - presentes;
 **Antes de empezar (preparación):** uno o dos días antes, abre la aplicación para comprobar que el proyecto de Supabase no esté pausado; ejecuta `seed.sql` con datos limpios y borra la asistencia de hoy (ver [sección 5](#5-prueba-rápida-todo-funciona)); ten abierto el **Table Editor** de Supabase en otra pestaña; sube el zoom del navegador (125 %) para que se lea desde atrás. Si no hay Internet, ten capturas de pantalla de respaldo.
 
 | Tiempo | Vista | Qué mostrar | Qué decir |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 0:00 – 0:30 | — | Presenta el proyecto. | «Es una aplicación para administrar academias: estudiantes, pagos y asistencia. Usa HTML, Tailwind, JavaScript y Supabase, y la vista de asistencia está hecha con React.» |
 | 0:30 – 1:15 | **Dashboard** | Señala el marcador (*Aún no se ha tomado asistencia hoy*), los 9 activos y la barra de pagos. | «Estas cifras se calculan con datos reales de la base y se actualizan cada vez que entro. Todavía no hay asistencia hoy, por eso no hay porcentaje.» |
 | 1:15 – 2:30 | **Estudiantes** | Busca `sofia`. Filtra por Fútbol. Crea un estudiante de 10 años sin acudiente (sale el error) y luego con acudiente. Desactiva uno, marca **Mostrar inactivos** y reactívalo. | «El buscador no distingue tildes. El acudiente es obligatorio solo para menores de 18, y esa regla también está en la base de datos. No borramos estudiantes: los desactivamos, para no perder su historial.» |
@@ -460,7 +460,7 @@ Para ser honestos sobre lo que el proyecto **no** hace (sirve como lista de mejo
 
 - **No tiene inicio de sesión.** La base queda abierta al rol anónimo: es una demostración, no una versión para datos reales (ver [sección 6](#6-seguridad-qué-significa-no-tener-inicio-de-sesión)). La primera mejora sería recuperar el inicio de sesión y, después, tener roles (por ejemplo, profesores que solo toman asistencia).
 - **Máximo 1000 filas por consulta.** Supabase limita lo que devuelve cada consulta. Para una academia es suficiente; para más habría que paginar.
-- **Tailwind por CDN.** Es cómodo para aprender y para un proyecto escolar, pero el propio Tailwind recomienda compilarlo para producción (la consola muestra un aviso). El CDN de Tailwind tampoco tiene versión fija.
+- **Tailwind compilado.** `estilos.css` se genera con `npm run css` a partir de `estilos.entrada.css` y `tailwind.config.js`, con la versión fija 3.4.17. Si se añaden clases nuevas en `index.html` o en los `.js`, hay que volver a compilarlo.
 - **Los scripts de CDN no usan *Subresource Integrity*.** Las versiones de Supabase (2.117.2), React (18.3.1) y `htm` (3.1.1) están fijas, pero no se comprueba un *hash* de cada archivo. Una mejora de seguridad sería agregar el atributo `integrity` en cada etiqueta `<script>`.
 - **Dos estilos de código.** La vista de Asistencia usa React y el resto JavaScript vainilla, conectados por un pequeño «puente». Es útil para aprender y comparar, pero en un proyecto real se suele elegir uno solo (o pasar todo a React con un compilador).
 - **React 18 por CDN y sin JSX.** React 19 ya no se ofrece para cargar con `<script>`, y sin compilador se usa `htm` en vez de JSX.

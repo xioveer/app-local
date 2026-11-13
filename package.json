@@ -1,0 +1,11 @@
+{
+  "name": "gestor-de-academia",
+  "private": true,
+  "scripts": {
+    "css": "tailwindcss -i ./estilos.entrada.css -o ./estilos.css --minify",
+    "css:vigilar": "tailwindcss -i ./estilos.entrada.css -o ./estilos.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.17"
+  }
+}

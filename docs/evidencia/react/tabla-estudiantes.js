@@ -1,10 +1,7 @@
-// EJEMPLO DIDÁCTICO (no se carga en la app). Necesita React, htm y la función normalizarTexto() de app.js.
-// const html = htm.bind(React.createElement);
 const { useState } = React;
 
 const ETIQUETAS_DE_PAGO = { al_dia: "Al día", pendiente: "Pendiente", vencido: "Vencido" };
 
-// <FilaDeEstudiante/>: una fila. Recibe sus datos por "props" y avisa con funciones.
 function FilaDeEstudiante({ estudiante, alEditar, alCambiarActivo }) {
   const acudiente = [estudiante.acudiente_nombre, estudiante.acudiente_telefono]
     .filter(Boolean).join(" · ") || "—";
@@ -30,7 +27,6 @@ function FilaDeEstudiante({ estudiante, alEditar, alCambiarActivo }) {
   `;
 }
 
-// <TablaEstudiantes/>: filtra y dibuja. NO guarda nada: todo sale de sus "props".
 function TablaEstudiantes({ estudiantes, texto, idDisciplina, mostrarInactivos, alEditar, alCambiarActivo }) {
   const buscado = normalizarTexto(texto.trim());
   const base = estudiantes.filter((e) => mostrarInactivos || e.activo);
@@ -54,7 +50,6 @@ function TablaEstudiantes({ estudiantes, texto, idDisciplina, mostrarInactivos, 
   `;
 }
 
-// <PanelDeEstudiantes/>: el ÚNICO que tiene ESTADO (lo que se escribe y el checkbox).
 function PanelDeEstudiantes({ estudiantes, alEditar, alCambiarActivo }) {
   const [texto, setTexto] = useState("");
   const [mostrarInactivos, setMostrarInactivos] = useState(false);

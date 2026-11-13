@@ -1,4 +1,3 @@
--- Métricas de asistencia de HOY (una sola consulta; LEFT JOIN conserva a quien no tiene registro)
 select
   count(*) filter (where a.asistio)          as presentes,
   count(*) filter (where a.asistio is false) as ausentes,

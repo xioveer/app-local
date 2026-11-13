@@ -5,91 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestor de Academia</title>
 
-  <!-- Ícono de la pestaña: el escudo "GA" dibujado con SVG (así no hacen falta archivos extra) -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230C1F4A%22/><text x=%2250%22 y=%2268%22 font-family=%22Arial,sans-serif%22 font-size=%2248%22 font-weight=%22bold%22 text-anchor=%22middle%22 fill=%22%23FFC629%22>GA</text></svg>">
 
-  <!-- Letras (Google Fonts): Barlow para los textos y Barlow Condensed para títulos y números -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
 
-  <!-- Tailwind CSS por CDN: genera los estilos a partir de las clases que usamos en el HTML -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Colores y letras de la academia. Con esto existen clases como bg-tinta, text-sol o font-titulo. -->
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            tinta: "#0C1F4A", // azul oscuro: encabezado, títulos y botones principales
-            sol: "#FFC629",   // amarillo: el color que resalta (como el de una camiseta)
-            papel: "#F1F4F9", // gris muy claro: el fondo de la página
-          },
-          fontFamily: {
-            sans: ["Barlow", "system-ui", "sans-serif"],
-            titulo: ["Barlow Condensed", "Barlow", "system-ui", "sans-serif"],
-          },
-        },
-      },
-    };
-  </script>
-
-  <!-- Clases propias. Cada una junta varias clases de Tailwind bajo un solo nombre (con @apply),
-       para no repetir la misma lista larga en cada botón, campo o tarjeta. -->
-  <style type="text/tailwindcss">
-    @layer components {
-      /* Superficies */
-      .tarjeta { @apply rounded-2xl border border-slate-200 bg-white; }
-      .vacio { @apply rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-sm text-slate-500; }
-
-      /* Títulos */
-      .titulo-vista { @apply font-titulo text-4xl font-bold text-tinta; }
-      .titulo-tarjeta { @apply font-titulo text-2xl font-bold text-tinta; }
-
-      /* Pestañas del menú: la de la vista actual se pinta del color de la página */
-      .pestana { @apply shrink-0 rounded-t-xl px-2 py-2.5 font-titulo text-base font-semibold text-blue-100 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sol sm:px-5 sm:text-lg; }
-      .pestana[aria-current="page"] { @apply bg-papel text-tinta; }
-
-      /* Botones: siempre "boton" + el tipo (boton-principal, boton-secundario...) */
-      .boton { @apply inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-tinta focus-visible:ring-offset-2; }
-      .boton-principal { @apply bg-tinta text-white hover:bg-blue-900; }
-      .boton-sol { @apply bg-sol text-tinta hover:bg-yellow-300 focus-visible:ring-sol focus-visible:ring-offset-tinta; }
-      .boton-secundario { @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-100; }
-      .boton-peligro { @apply bg-rose-600 text-white hover:bg-rose-700; }
-      .boton-chico { @apply h-8 px-3 text-xs; }
-
-      /* Formularios */
-      .etiqueta { @apply mb-1 block text-sm font-medium text-slate-700; }
-      .campo { @apply block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 focus:border-tinta focus:outline-none focus:ring-2 focus:ring-tinta/20; }
-      .campo[aria-invalid="true"] { @apply border-rose-500; }
-      .error-de-campo { @apply mt-1 text-xs font-medium text-rose-600; }
-
-      /* Etiqueta pequeña de estado (pago, inactivo, sin registrar) */
-      .chip { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold; }
-
-      /* Círculo con las iniciales del estudiante */
-      .iniciales { @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-tinta font-titulo text-sm font-bold text-sol; }
-
-      /* Celda de la tabla de estudiantes. En celular la fila es una tarjeta y cada celda
-         muestra antes su nombre (lo toma del atributo data-etiqueta). */
-      .celda { @apply flex gap-2 py-0.5 text-slate-600 before:w-24 before:shrink-0 before:text-xs before:font-medium before:leading-5 before:text-slate-400 before:content-[attr(data-etiqueta)] md:table-cell md:px-4 md:py-3 md:before:hidden; }
-    }
-  </style>
+  <link rel="stylesheet" href="estilos.css">
 </head>
 
 <body class="bg-papel text-slate-800 antialiased">
-
-  <!-- =================================================================
-       AVISOS (toasts): mensajes cortos para el usuario.
-       Se rellenan desde app.js con la función mostrarAviso().
-       ================================================================= -->
   <div id="contenedor-avisos" aria-live="polite"
        class="pointer-events-none fixed inset-x-4 top-4 z-50 space-y-2 sm:left-auto sm:right-4 sm:w-96"></div>
 
-  <!-- =================================================================
-       INDICADOR DE CARGA: cubre la pantalla mientras se consulta a Supabase.
-       ================================================================= -->
   <div id="indicador-cargando" role="status" aria-live="polite"
        class="fixed inset-0 z-40 hidden bg-papel/70 backdrop-blur-sm">
     <div class="flex h-full items-center justify-center">
@@ -103,13 +31,6 @@
     </div>
   </div>
 
-
-  <!-- =================================================================
-       DIÁLOGO DE CONFIRMACIÓN (elemento <dialog> nativo del navegador).
-       app.js lo abre con pedirConfirmacion() antes de acciones delicadas.
-       Los botones están dentro de un form method="dialog": al pulsarlos,
-       el diálogo se cierra y guarda el "value" del botón como resultado.
-       ================================================================= -->
   <dialog id="dialogo-confirmacion"
           class="m-auto w-[calc(100%-2rem)] max-w-sm rounded-2xl bg-white p-0 text-slate-800 shadow-xl backdrop:bg-tinta/60">
     <form method="dialog" class="p-6">
@@ -122,12 +43,6 @@
     </form>
   </dialog>
 
-
-  <!-- =================================================================
-       PANTALLA DE PROBLEMA AL EMPEZAR
-       Solo se muestra si la aplicación no puede arrancar (por ejemplo, si
-       faltan los datos de conexion.js). app.js escribe aquí la explicación.
-       ================================================================= -->
   <section id="pantalla-problema" class="hidden">
     <div class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-10">
       <div class="tarjeta p-6">
@@ -139,15 +54,7 @@
     </div>
   </section>
 
-
-  <!-- =================================================================
-       APLICACIÓN PRINCIPAL
-       Contiene el encabezado, el menú de pestañas y las vistas (secciones).
-       Empieza oculta; app.js la muestra cuando todo está listo.
-       ================================================================= -->
   <div id="app-principal" class="hidden min-h-screen">
-
-    <!-- Encabezado: escudo, nombre y fecha de hoy -->
     <header class="bg-tinta text-white">
       <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 pb-4 pt-5">
         <div class="flex min-w-0 items-center gap-3">
@@ -160,8 +67,6 @@
         <p id="fecha-encabezado" class="hidden shrink-0 text-sm text-blue-200 sm:block"></p>
       </div>
 
-      <!-- Menú de pestañas: cada botón lleva data-ir-a con el nombre de su vista.
-           app.js pone aria-current="page" en la pestaña de la vista que se está viendo. -->
       <nav aria-label="Secciones" class="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4">
         <button type="button" data-ir-a="dashboard" class="pestana">Dashboard</button>
         <button type="button" data-ir-a="estudiantes" class="pestana">Estudiantes</button>
@@ -170,15 +75,8 @@
       </nav>
     </header>
 
-
-    <!-- Contenido principal. Cada <section data-vista="..."> es una vista;
-         app.js muestra solo una a la vez quitando/poniendo la clase "hidden". -->
     <main class="mx-auto max-w-6xl px-4 py-8">
-
-      <!-- Vista: Dashboard (asistencia de hoy, estudiantes activos y pagos).
-           Los números empiezan en "—" y app.js los rellena en cargarDashboard(). -->
       <section data-vista="dashboard" class="hidden">
-
         <div class="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 class="titulo-vista">Dashboard</h2>
@@ -188,12 +86,6 @@
         </div>
 
         <div class="mt-6 grid gap-4 lg:grid-cols-5">
-
-          <!-- Marcador de la asistencia de hoy: cuenta solo lo guardado en la base de datos.
-               Tiene tres estados (app.js muestra uno y oculta los otros):
-               1) hay registros → porcentaje, barra y presentes/ausentes
-               2) nadie tiene registro → "Aún no se ha tomado asistencia hoy"
-               3) no hay estudiantes activos -->
           <div class="rounded-3xl bg-tinta p-6 text-white sm:p-8 lg:col-span-3">
             <div class="flex flex-wrap items-baseline justify-between gap-2">
               <h3 class="font-titulo text-2xl font-bold">Asistencia de hoy</h3>
@@ -242,7 +134,6 @@
             </dl>
           </div>
 
-          <!-- Estudiantes activos y su estado de pago (solo cuentan los activos) -->
           <div class="tarjeta p-6 lg:col-span-2">
             <div class="flex items-center justify-between gap-3">
               <h3 class="titulo-tarjeta">Estudiantes activos</h3>
@@ -250,7 +141,6 @@
             </div>
 
             <h4 class="mt-6 text-sm font-semibold text-slate-500">Estado de pago</h4>
-            <!-- Barra repartida en tres tramos; app.js le pone a cada uno su ancho -->
             <div class="mt-2 flex h-3 w-full overflow-hidden rounded-full bg-slate-100" role="presentation">
               <div id="dash-tramo-al-dia" class="h-full bg-emerald-500" style="width: 0%"></div>
               <div id="dash-tramo-pendientes" class="h-full bg-orange-400" style="width: 0%"></div>
@@ -281,9 +171,7 @@
         </div>
       </section>
 
-      <!-- Vista: Estudiantes (formulario, buscador, filtros y tabla) -->
       <section data-vista="estudiantes" class="hidden">
-
         <div class="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 class="titulo-vista">Estudiantes</h2>
@@ -292,14 +180,10 @@
           <button id="boton-nuevo-estudiante" type="button" class="boton boton-principal">+ Nuevo estudiante</button>
         </div>
 
-        <!-- Formulario para crear y editar (oculto hasta que se pulsa "Nuevo" o "Editar").
-             Cada campo tiene name="columna_de_la_base_de_datos".
-             Los <p data-error-de="..."> muestran el error de validación de cada campo. -->
         <div id="panel-formulario-estudiante" class="tarjeta mt-6 hidden border-t-4 border-t-sol p-6">
           <h3 id="titulo-formulario-estudiante" class="titulo-tarjeta">Nuevo estudiante</h3>
 
           <form id="formulario-estudiante" novalidate class="mt-4 grid gap-4 sm:grid-cols-2">
-
             <div class="sm:col-span-2">
               <label for="campo-nombre" class="etiqueta">Nombre completo <span class="text-rose-600">*</span></label>
               <input id="campo-nombre" name="nombre_completo" type="text" maxlength="100" autocomplete="off" class="campo">
@@ -335,8 +219,6 @@
               <p data-error-de="estado_pago" class="error-de-campo hidden"></p>
             </div>
 
-            <!-- Acudiente: obligatorio solo si el estudiante es menor de 18 años.
-                 app.js cambia el texto de ayuda y muestra/oculta los asteriscos (data-marca-acudiente). -->
             <div class="border-t border-slate-100 pt-4 sm:col-span-2">
               <h4 class="text-sm font-semibold text-slate-900">Acudiente</h4>
               <p id="ayuda-acudiente" class="mt-1 text-xs text-slate-500"></p>
@@ -361,7 +243,6 @@
           </form>
         </div>
 
-        <!-- Buscador y filtros: se pueden combinar -->
         <div class="mt-6 flex flex-col gap-3 md:flex-row md:items-center">
           <div class="md:flex-1">
             <label for="filtro-texto" class="sr-only">Buscar por nombre</label>
@@ -377,8 +258,6 @@
           </label>
         </div>
 
-        <!-- Lista de estudiantes.
-             En pantallas grandes es una tabla; en celular cada fila se convierte en una tarjeta. -->
         <div class="mt-4">
           <p id="mensaje-sin-estudiantes" class="vacio hidden"></p>
 
@@ -401,9 +280,6 @@
         </div>
       </section>
 
-      <!-- Vista: Asistencia. Está hecha con REACT (archivo asistencia-react.js):
-           React dibuja aquí dentro la fecha, el filtro, la lista con interruptores y la barra de guardar.
-           Todo lo demás de la página sigue siendo JavaScript vainilla. -->
       <section data-vista="asistencia" class="hidden">
         <h2 class="titulo-vista">Asistencia</h2>
         <p class="mt-1 max-w-2xl text-sm text-slate-500">Elige la fecha, marca quién vino y pulsa «Guardar asistencia». Solo aparecen los estudiantes activos.</p>
@@ -411,7 +287,6 @@
         <div id="raiz-asistencia"></div>
       </section>
 
-      <!-- Vista: Disciplinas (lista y formulario para agregar) -->
       <section data-vista="disciplinas" class="hidden">
         <h2 class="titulo-vista">Disciplinas</h2>
         <p class="mt-1 max-w-2xl text-sm text-slate-500">Son las actividades de la academia (fútbol, guitarra, danza...). Cada estudiante pertenece a una.</p>
@@ -429,24 +304,11 @@
         </p>
         <ul id="lista-disciplinas" class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"></ul>
       </section>
-
     </main>
   </div>
 
-
-  <!-- =================================================================
-       PLANTILLA: fila de la tabla de estudiantes.
-       Un <template> no se muestra; app.js lo copia una vez por estudiante
-       y rellena los textos con textContent (así nunca se interpreta HTML
-       escrito por el usuario).
-       - En pantallas grandes (md:) la fila es una fila de tabla.
-       - En celular es una tarjeta: cada celda muestra su etiqueta (data-etiqueta),
-         gracias a la clase "celda" definida arriba.
-       - "group" + data-inactivo permiten pintar de gris las filas inactivas.
-       ================================================================= -->
   <template id="plantilla-fila-estudiante">
     <tr class="group block rounded-2xl border border-slate-200 bg-white p-4 data-[inactivo=true]:bg-slate-50 md:table-row md:rounded-none md:border-0 md:p-0">
-
       <td class="mb-3 block md:mb-0 md:table-cell md:px-4 md:py-3">
         <div class="flex items-center gap-3">
           <span data-texto="iniciales" class="iniciales group-data-[inactivo=true]:bg-slate-300 group-data-[inactivo=true]:text-white" aria-hidden="true"></span>
@@ -490,16 +352,6 @@
     </tr>
   </template>
 
-
-  <!-- =================================================================
-       SCRIPTS (el orden importa)
-       1. SDK de Supabase  → crea window.supabase
-       2. React, ReactDOM  → crean window.React y window.ReactDOM (versión 18, sin compilar)
-          y htm            → crea window.htm: permite escribir "HTML dentro de JavaScript" sin compilar
-       3. conexion.js      → define SUPABASE_URL y SUPABASE_ANON_KEY
-       4. app.js           → la lógica de toda la aplicación, que usa lo anterior
-       5. asistencia-react.js → la vista Asistencia, hecha con React (usa funciones de app.js)
-       ================================================================= -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>

@@ -1,5 +1,3 @@
-// EJEMPLO DIDÁCTICO (no se carga en la app). Necesita React y htm:  const html = htm.bind(React.createElement);
-// <TarjetaDashboard/>: UNA definición que se reutiliza para las 4 tarjetas
 function TarjetaDashboard({ titulo, valor, colorDelPunto }) {
   return html`
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -11,8 +9,6 @@ function TarjetaDashboard({ titulo, valor, colorDelPunto }) {
     </div>
   `;
 }
-
-// El panel recibe las métricas (o null mientras cargan) y dibuja las 4 tarjetas.
 function PanelDeTarjetas({ metricas }) {
   const v = (campo) => (metricas ? metricas[campo] : "—");   // "—" mientras no hay datos
   return html`

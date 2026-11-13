@@ -1,4 +1,3 @@
--- Asistencia de hoy por disciplina (JOIN de tres tablas)
 select d.nombre as disciplina,
        count(e.id)                               as estudiantes,
        count(*) filter (where a.asistio)         as presentes,
