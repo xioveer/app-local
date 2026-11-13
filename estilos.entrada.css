@@ -3,30 +3,79 @@
 @tailwind utilities;
 
 @layer components {
-  .tarjeta { @apply rounded-2xl border border-slate-200 bg-white; }
-  .vacio { @apply rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-sm text-slate-500; }
+  .tarjeta {
+    @apply rounded-2xl border border-slate-200 bg-white;
+  }
+  .vacio {
+    @apply rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-sm text-slate-500;
+  }
 
-  .titulo-vista { @apply font-titulo text-4xl font-bold text-tinta; }
-  .titulo-tarjeta { @apply font-titulo text-2xl font-bold text-tinta; }
+  .titulo-vista {
+    @apply font-titulo text-4xl font-bold text-tinta;
+  }
+  .titulo-tarjeta {
+    @apply font-titulo text-2xl font-bold text-tinta;
+  }
 
-  .pestana { @apply shrink-0 rounded-t-xl px-2 py-2.5 font-titulo text-base font-semibold text-blue-100 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sol sm:px-5 sm:text-lg; }
-  .pestana[aria-current="page"] { @apply bg-papel text-tinta; }
+  .pestana {
+    @apply shrink-0 rounded-t-xl px-2 py-2.5 font-titulo text-base font-semibold text-blue-100 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sol sm:px-5 sm:text-lg;
+  }
+  .pestana[aria-current="page"] {
+    @apply bg-papel text-tinta;
+  }
 
-  .boton { @apply inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-tinta focus-visible:ring-offset-2; }
-  .boton-principal { @apply bg-tinta text-white hover:bg-blue-900; }
-  .boton-sol { @apply bg-sol text-tinta hover:bg-yellow-300 focus-visible:ring-sol focus-visible:ring-offset-tinta; }
-  .boton-secundario { @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-100; }
-  .boton-peligro { @apply bg-rose-600 text-white hover:bg-rose-700; }
-  .boton-chico { @apply h-8 px-3 text-xs; }
+  .boton {
+    @apply inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-tinta focus-visible:ring-offset-2;
+  }
+  .boton-principal {
+    @apply bg-tinta text-white hover:bg-blue-900;
+  }
+  .boton-sol {
+    @apply bg-sol text-tinta hover:bg-yellow-300 focus-visible:ring-sol focus-visible:ring-offset-tinta;
+  }
+  .boton-secundario {
+    @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-100;
+  }
+  .boton-peligro {
+    @apply bg-rose-600 text-white hover:bg-rose-700;
+  }
+  .boton-chico {
+    @apply h-8 px-3 text-xs;
+  }
 
-  .etiqueta { @apply mb-1 block text-sm font-medium text-slate-700; }
-  .campo { @apply block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 focus:border-tinta focus:outline-none focus:ring-2 focus:ring-tinta/20; }
-  .campo[aria-invalid="true"] { @apply border-rose-500; }
-  .error-de-campo { @apply mt-1 text-xs font-medium text-rose-600; }
+  .etiqueta {
+    @apply mb-1 block text-sm font-medium text-slate-700;
+  }
+  .campo {
+    @apply block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 focus:border-tinta focus:outline-none focus:ring-2 focus:ring-tinta/20;
+  }
+  .campo[aria-invalid="true"] {
+    @apply border-rose-500;
+  }
+  .error-de-campo {
+    @apply mt-1 text-xs font-medium text-rose-600;
+  }
 
-  .chip { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold; }
+  .chip {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
 
-  .iniciales { @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-tinta font-titulo text-sm font-bold text-sol; }
+  .iniciales {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-tinta font-titulo text-sm font-bold text-sol;
+  }
 
-  .celda { @apply flex gap-2 py-0.5 text-slate-600 before:w-24 before:shrink-0 before:text-xs before:font-medium before:leading-5 before:text-slate-400 before:content-[attr(data-etiqueta)] md:table-cell md:px-4 md:py-3 md:before:hidden; }
+  .celda {
+    @apply flex gap-2 py-0.5 text-slate-600 before:w-24 before:shrink-0 before:text-xs before:font-medium before:leading-5 before:text-slate-400 before:content-[attr(data-etiqueta)] md:table-cell md:px-4 md:py-3 md:before:hidden;
+  }
+
+  /* Sitio público */
+  .enlace-nav {
+    @apply rounded-lg px-3 py-2 font-titulo text-lg font-semibold text-blue-100 hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sol;
+  }
+  .titulo-seccion {
+    @apply font-titulo text-3xl font-bold text-tinta sm:text-4xl;
+  }
+  .precio {
+    @apply font-titulo text-4xl font-bold leading-none text-tinta;
+  }
 }

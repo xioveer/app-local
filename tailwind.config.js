@@ -1,6 +1,13 @@
 /** @type {import("tailwindcss").Config} */
 export default {
-  content: ["./index.html", "./app.js", "./asistencia-react.js"],
+  content: [
+    "./index.html",
+    "./admin.html",
+    "./sitio.js",
+    "./app.js",
+    "./asistencia-react.js",
+    "./asistente-ia.js",
+  ],
   theme: {
     extend: {
       colors: {

@@ -33,3 +33,23 @@ where not exists (
   from public.estudiantes e
   where e.nombre_completo = v.nombre_completo
 );
+
+
+-- Catálogo que ve el público, con la tarifa mensual en pesos colombianos.
+insert into public.servicios
+  (nombre, descripcion, precio_mensual, disciplina_id, destacado, orden)
+select
+  v.nombre, v.descripcion, v.precio_mensual, d.id, v.destacado, v.orden
+from (values
+  ('Fútbol Infantil',      'Para niñas y niños de 5 a 9 años. Dos entrenamientos por semana y partido los sábados.',  70000,  'Fútbol',           false, 1),
+  ('Fútbol Competencia',   'Categorías Sub-12 y Sub-15. Tres entrenamientos por semana y torneo intercolegiado.',     95000,  'Fútbol',           true,  2),
+  ('Guitarra Grupal',      'Grupos de hasta seis personas. Una clase semanal de hora y media.',                        90000,  'Guitarra',         false, 3),
+  ('Guitarra Personalizada','Clase individual de una hora por semana, con plan de estudio propio.',                   130000, 'Guitarra',         false, 4),
+  ('Danza Folclórica',     'Bambuco, cumbia y mapalé. Dos clases por semana y muestra al final del semestre.',        85000,  'Danza folclórica', false, 5)
+) as v (nombre, descripcion, precio_mensual, disciplina, destacado, orden)
+join public.disciplinas d on d.nombre = v.disciplina
+where not exists (
+  select 1
+  from public.servicios s
+  where s.nombre = v.nombre
+);

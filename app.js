@@ -4,11 +4,17 @@ let clienteSupabase = null;
 
 const estado = {
   vistaActual: "",
+  usuario: null,
   disciplinas: [],
   estudiantes: [],
+  servicios: [],
+  mensajes: [],
   disciplinasCargadas: false,
   estudiantesCargados: false,
+  serviciosCargados: false,
+  mensajesCargados: false,
   idEstudianteEnEdicion: null,
+  idServicioEnEdicion: null,
   dashboardCargado: false,
 };
 
@@ -27,6 +33,36 @@ function guardarReferenciasDelDOM() {
   elementos.fechaEncabezado = document.getElementById("fecha-encabezado");
   elementos.pantallaProblema = document.getElementById("pantalla-problema");
   elementos.textoProblema = document.getElementById("texto-problema");
+
+  elementos.pantallaLogin = document.getElementById("pantalla-login");
+  elementos.formularioLogin = document.getElementById("formulario-login");
+  elementos.campoCorreo = document.getElementById("login-correo");
+  elementos.campoContrasena = document.getElementById("login-contrasena");
+  elementos.botonLogin = document.getElementById("boton-login");
+  elementos.botonGoogle = document.getElementById("boton-google");
+  elementos.avisoGoogle = document.getElementById("aviso-google");
+  elementos.pantallaSinPermiso = document.getElementById("pantalla-sin-permiso");
+  elementos.correoSinPermiso = document.getElementById("correo-sin-permiso");
+  elementos.botonSalirSinPermiso = document.getElementById("boton-salir-sin-permiso");
+  elementos.correoUsuario = document.getElementById("correo-usuario");
+  elementos.botonCerrarSesion = document.getElementById("boton-cerrar-sesion");
+
+  elementos.botonNuevoServicio = document.getElementById("boton-nuevo-servicio");
+  elementos.panelFormularioServicio = document.getElementById("panel-formulario-servicio");
+  elementos.tituloFormularioServicio = document.getElementById("titulo-formulario-servicio");
+  elementos.formularioServicio = document.getElementById("formulario-servicio");
+  elementos.campoDisciplinaServicio = document.getElementById("campo-servicio-disciplina");
+  elementos.botonCancelarServicio = document.getElementById("boton-cancelar-servicio");
+  elementos.botonGuardarServicio = document.getElementById("boton-guardar-servicio");
+  elementos.contadorServicios = document.getElementById("contador-servicios");
+  elementos.listaServiciosAdmin = document.getElementById("lista-servicios-admin");
+  elementos.mensajeSinServiciosAdmin = document.getElementById("mensaje-sin-servicios-admin");
+
+  elementos.listaMensajes = document.getElementById("lista-mensajes");
+  elementos.contadorMensajes = document.getElementById("contador-mensajes");
+  elementos.mensajeSinMensajes = document.getElementById("mensaje-sin-mensajes");
+  elementos.filtroNoLeidos = document.getElementById("filtro-no-leidos");
+  elementos.globoMensajes = document.getElementById("globo-mensajes");
 
   elementos.formularioDisciplina = document.getElementById("formulario-disciplina");
   elementos.campoNombreDisciplina = document.getElementById("campo-disciplina-nombre");
@@ -87,8 +123,17 @@ function configuracionEsValida() {
   );
 }
 
+// El panel sí guarda la sesión. detectSessionInUrl deja que el SDK lea la
+// sesión que Google devuelve en la dirección al volver de su pantalla.
 function crearClienteSupabase() {
-  const opciones = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
+  const opciones = {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storageKey: "academia-sesion",
+    },
+  };
   clienteSupabase = window.supabase.createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim(), opciones);
 }
 
@@ -148,8 +193,23 @@ function describirError(error) {
       "Los estudiantes menores de " + EDAD_DE_MAYORIA + " años necesitan nombre y teléfono del acudiente."
     );
   }
-  if (codigo === "42501") {
-    return "La base de datos no permite el acceso. Ejecuta supabase/modo_sin_login.sql en el SQL Editor de Supabase.";
+  if (/invalid login credentials/i.test(mensaje)) {
+    return "Correo o contraseña incorrectos.";
+  }
+  if (/email not confirmed/i.test(mensaje)) {
+    return "Ese usuario todavía no tiene el correo confirmado en Supabase.";
+  }
+  if (/provider is not enabled|unsupported provider/i.test(mensaje)) {
+    return (
+      "El inicio de sesión con Google no está activado en Supabase. " +
+      "Actívalo en Authentication → Sign In / Providers, o entra con correo y contraseña."
+    );
+  }
+  if (/jwt expired/i.test(mensaje) || codigo === "PGRST301") {
+    return "Tu sesión expiró. Vuelve a entrar.";
+  }
+  if (codigo === "42501" || codigo === "PGRST116") {
+    return "Tu cuenta no tiene permiso para ver estos datos. Pídele al administrador que te autorice.";
   }
   if (codigo === "23505") {
     return "Ya existe un registro con ese valor.";
@@ -938,6 +998,12 @@ function mostrarVista(nombreVista) {
     cargarDisciplinas();
   } else if (nombreVista === "asistencia") {
     abrirVistaAsistencia();
+  } else if (nombreVista === "servicios") {
+    abrirVistaServicios();
+  } else if (nombreVista === "mensajes") {
+    cargarMensajes();
+  } else if (nombreVista === "asistente") {
+    abrirVistaAsistente();
   }
 }
 
@@ -970,6 +1036,20 @@ function conectarEventos() {
   elementos.cuerpoTablaEstudiantes.addEventListener("click", manejarClicEnTablaDeEstudiantes);
 
   elementos.botonActualizarDashboard.addEventListener("click", actualizarDashboard);
+
+  elementos.formularioLogin.addEventListener("submit", iniciarSesionConCorreo);
+  elementos.botonGoogle.addEventListener("click", iniciarSesionConGoogle);
+  elementos.botonCerrarSesion.addEventListener("click", cerrarSesion);
+  elementos.botonSalirSinPermiso.addEventListener("click", cerrarSesion);
+
+  elementos.botonNuevoServicio.addEventListener("click", () => abrirFormularioServicio());
+  elementos.botonCancelarServicio.addEventListener("click", cerrarFormularioServicio);
+  elementos.formularioServicio.addEventListener("submit", guardarServicio);
+  elementos.formularioServicio.addEventListener("input", quitarErrorDelCampoDeServicio);
+  elementos.listaServiciosAdmin.addEventListener("click", manejarClicEnServicios);
+
+  elementos.filtroNoLeidos.addEventListener("change", dibujarMensajes);
+  elementos.listaMensajes.addEventListener("click", manejarClicEnMensajes);
 }
 
 function escribirFechaEnEncabezado() {
@@ -982,7 +1062,7 @@ function mostrarProblemaDeInicio(mensaje) {
   elementos.pantallaProblema.classList.remove("hidden");
 }
 
-function iniciarAplicacion() {
+async function iniciarAplicacion() {
   guardarReferenciasDelDOM();
 
   if (!sdkDeSupabaseCargado()) {
@@ -992,7 +1072,7 @@ function iniciarAplicacion() {
 
   if (!configuracionEsValida()) {
     mostrarProblemaDeInicio(
-      "Faltan los datos de conexión con Supabase. Revisa que el archivo conexion.js esté junto a index.html " +
+      "Faltan los datos de conexión con Supabase. Revisa que el archivo conexion.js esté junto a admin.html " +
         "y que tenga escritos SUPABASE_URL y SUPABASE_ANON_KEY."
     );
     return;
@@ -1001,8 +1081,689 @@ function iniciarAplicacion() {
   crearClienteSupabase();
   conectarEventos();
   escribirFechaEnEncabezado();
+  vigilarCierreDeSesion();
+
+  await revisarSesion();
+}
+
+/* =====================================================================
+   AUTENTICACIÓN
+   Entrar solo identifica a la persona. El permiso para ver los datos lo
+   da la tabla administradores, que se consulta con es_administrador().
+   ===================================================================== */
+
+function ocultarTodasLasPantallas() {
+  elementos.pantallaLogin.classList.add("hidden");
+  elementos.pantallaSinPermiso.classList.add("hidden");
+  elementos.appPrincipal.classList.add("hidden");
+}
+
+function mostrarLogin() {
+  limpiarDatosDeLaSesion();
+  ocultarTodasLasPantallas();
+  elementos.pantallaLogin.classList.remove("hidden");
+  elementos.campoContrasena.value = "";
+}
+
+function mostrarSinPermiso(usuario) {
+  ocultarTodasLasPantallas();
+  elementos.correoSinPermiso.textContent = usuario.email || "esta cuenta";
+  elementos.pantallaSinPermiso.classList.remove("hidden");
+}
+
+function mostrarAplicacion(usuario) {
+  estado.usuario = usuario;
+  ocultarTodasLasPantallas();
+  elementos.correoUsuario.textContent = usuario.email || "";
   elementos.appPrincipal.classList.remove("hidden");
   mostrarVista("dashboard");
+  actualizarGloboDeMensajes();
+}
+
+// Borra de la pantalla y de la memoria lo que se cargó: en un computador
+// compartido, quien entre después no debe ver los datos del anterior.
+function limpiarDatosDeLaSesion() {
+  estado.usuario = null;
+  estado.disciplinas = [];
+  estado.estudiantes = [];
+  estado.servicios = [];
+  estado.mensajes = [];
+  estado.disciplinasCargadas = false;
+  estado.estudiantesCargados = false;
+  estado.serviciosCargados = false;
+  estado.mensajesCargados = false;
+  estado.vistaActual = "";
+
+  elementos.campoBusqueda.value = "";
+  elementos.filtroInactivos.checked = false;
+  elementos.cuerpoTablaEstudiantes.replaceChildren();
+  elementos.listaDisciplinas.replaceChildren();
+  elementos.listaServiciosAdmin.replaceChildren();
+  elementos.listaMensajes.replaceChildren();
+  elementos.globoMensajes.classList.add("hidden");
+  cerrarFormularioEstudiante();
+  cerrarFormularioServicio();
+}
+
+// Pregunta a la base de datos si esta cuenta está autorizada.
+async function entrarSiEsAdministrador(usuario) {
+  const { data, error } = await clienteSupabase.rpc("es_administrador");
+  if (error) throw error;
+
+  if (data === true) {
+    mostrarAplicacion(usuario);
+  } else {
+    mostrarSinPermiso(usuario);
+  }
+}
+
+async function revisarSesion() {
+  mostrarCargando("Revisando tu sesión...");
+  try {
+    const { data, error } = await clienteSupabase.auth.getSession();
+    if (error) throw error;
+
+    if (data.session) {
+      await entrarSiEsAdministrador(data.session.user);
+    } else {
+      mostrarLogin();
+    }
+  } catch (error) {
+    mostrarLogin();
+    mostrarAviso(describirError(error), "error");
+  } finally {
+    ocultarCargando();
+  }
+}
+
+function validarCredenciales(correo, contrasena) {
+  if (correo === "") {
+    return "Escribe tu correo electrónico.";
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+    return "El correo no tiene un formato válido.";
+  }
+  if (contrasena === "") {
+    return "Escribe tu contraseña.";
+  }
+  return "";
+}
+
+async function iniciarSesionConCorreo(evento) {
+  evento.preventDefault();
+
+  const correo = elementos.campoCorreo.value.trim();
+  const contrasena = elementos.campoContrasena.value;
+
+  const problema = validarCredenciales(correo, contrasena);
+  if (problema !== "") {
+    mostrarAviso(problema, "error");
+    return;
+  }
+
+  mostrarCargando("Entrando...");
+  elementos.botonLogin.disabled = true;
+  try {
+    const { data, error } = await clienteSupabase.auth.signInWithPassword({
+      email: correo,
+      password: contrasena,
+    });
+    if (error) throw error;
+
+    await entrarSiEsAdministrador(data.user);
+  } catch (error) {
+    mostrarAviso(describirError(error), "error");
+  } finally {
+    elementos.botonLogin.disabled = false;
+    ocultarCargando();
+  }
+}
+
+// Lleva a la pantalla de Google y vuelve a esta misma dirección.
+// Si el proveedor no está activado en Supabase, no redirige y lo avisamos.
+async function iniciarSesionConGoogle() {
+  elementos.avisoGoogle.classList.add("hidden");
+  mostrarCargando("Abriendo Google...");
+  try {
+    const { error } = await clienteSupabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin + window.location.pathname },
+    });
+    if (error) throw error;
+  } catch (error) {
+    elementos.avisoGoogle.textContent = describirError(error);
+    elementos.avisoGoogle.classList.remove("hidden");
+    ocultarCargando();
+  }
+}
+
+// Cierra la sesión en este navegador aunque falle la red.
+async function cerrarSesion() {
+  mostrarCargando("Cerrando sesión...");
+  try {
+    await clienteSupabase.auth.signOut({ scope: "local" });
+  } catch (error) {
+    mostrarAviso("La sesión se cerró aquí, pero no se pudo avisar a Supabase.", "info");
+  } finally {
+    mostrarLogin();
+    ocultarCargando();
+  }
+}
+
+// Si la sesión caduca o se cierra en otra pestaña, volvemos al login.
+function vigilarCierreDeSesion() {
+  clienteSupabase.auth.onAuthStateChange((evento) => {
+    if (evento === "SIGNED_OUT") {
+      mostrarLogin();
+    }
+  });
+}
+
+/* =====================================================================
+   SERVICIOS (el catálogo con tarifas que ve el público)
+   ===================================================================== */
+
+function formatearPrecio(pesos) {
+  return "$" + Number(pesos).toLocaleString("es-CO");
+}
+
+async function cargarServicios() {
+  mostrarCargando("Cargando servicios...");
+  try {
+    const { data, error } = await clienteSupabase
+      .from("servicios")
+      .select("*, disciplinas(nombre)")
+      .order("orden", { ascending: true });
+    if (error) throw error;
+
+    estado.servicios = data;
+    estado.serviciosCargados = true;
+    dibujarServiciosAdmin();
+    return true;
+  } catch (error) {
+    mostrarAviso("No se pudieron cargar los servicios. " + describirError(error), "error");
+    return false;
+  } finally {
+    ocultarCargando();
+  }
+}
+
+function crearTarjetaDeServicioAdmin(servicio) {
+  const elemento = document.createElement("li");
+  elemento.className = servicio.activo ? "tarjeta p-4" : "tarjeta bg-slate-50 p-4";
+  elemento.dataset.id = String(servicio.id);
+
+  const arriba = document.createElement("div");
+  arriba.className = "flex items-start justify-between gap-3";
+
+  const izquierda = document.createElement("div");
+  izquierda.className = "min-w-0";
+
+  const nombre = document.createElement("p");
+  nombre.className = servicio.activo ? "font-semibold text-slate-900" : "font-semibold text-slate-500";
+  nombre.textContent = servicio.nombre;
+  izquierda.appendChild(nombre);
+
+  const detalle = document.createElement("p");
+  detalle.className = "mt-0.5 text-sm text-slate-500";
+  detalle.textContent = servicio.disciplinas ? servicio.disciplinas.nombre : "Sin disciplina";
+  izquierda.appendChild(detalle);
+
+  const etiquetas = document.createElement("div");
+  etiquetas.className = "mt-2 flex flex-wrap gap-1.5";
+  if (servicio.destacado) {
+    const destacado = document.createElement("span");
+    destacado.className = "chip bg-sol text-tinta";
+    destacado.textContent = "El más pedido";
+    etiquetas.appendChild(destacado);
+  }
+  if (!servicio.activo) {
+    const oculto = document.createElement("span");
+    oculto.className = "chip bg-slate-200 text-slate-600";
+    oculto.textContent = "Oculto en la página";
+    etiquetas.appendChild(oculto);
+  }
+  izquierda.appendChild(etiquetas);
+
+  const precio = document.createElement("p");
+  precio.className = "shrink-0 font-titulo text-2xl font-bold text-tinta";
+  precio.textContent = formatearPrecio(servicio.precio_mensual);
+
+  arriba.appendChild(izquierda);
+  arriba.appendChild(precio);
+  elemento.appendChild(arriba);
+
+  if (servicio.descripcion) {
+    const descripcion = document.createElement("p");
+    descripcion.className = "mt-3 text-sm text-slate-600";
+    descripcion.textContent = servicio.descripcion;
+    elemento.appendChild(descripcion);
+  }
+
+  const acciones = document.createElement("div");
+  acciones.className = "mt-4 flex flex-wrap gap-2";
+
+  const editar = document.createElement("button");
+  editar.type = "button";
+  editar.dataset.accion = "editar-servicio";
+  editar.className = "boton boton-chico boton-secundario";
+  editar.textContent = "Editar";
+  acciones.appendChild(editar);
+
+  const visibilidad = document.createElement("button");
+  visibilidad.type = "button";
+  visibilidad.dataset.accion = "cambiar-visibilidad";
+  visibilidad.className = "boton boton-chico boton-secundario";
+  visibilidad.textContent = servicio.activo ? "Ocultar de la página" : "Mostrar en la página";
+  acciones.appendChild(visibilidad);
+
+  elemento.appendChild(acciones);
+  return elemento;
+}
+
+function dibujarServiciosAdmin() {
+  elementos.listaServiciosAdmin.replaceChildren();
+  estado.servicios.forEach((servicio) => {
+    elementos.listaServiciosAdmin.appendChild(crearTarjetaDeServicioAdmin(servicio));
+  });
+
+  const hayServicios = estado.servicios.length > 0;
+  elementos.mensajeSinServiciosAdmin.classList.toggle("hidden", !estado.serviciosCargados || hayServicios);
+
+  const visibles = estado.servicios.filter((servicio) => servicio.activo).length;
+  elementos.contadorServicios.textContent = estado.serviciosCargados
+    ? visibles + " de " + estado.servicios.length + " visibles en la página"
+    : "";
+}
+
+function llenarSelectDeDisciplinasDeServicio() {
+  llenarSelectDeDisciplinas(elementos.campoDisciplinaServicio, "Sin disciplina");
+}
+
+function abrirFormularioServicio(servicio = null) {
+  limpiarErroresDelServicio();
+  const formulario = elementos.formularioServicio;
+
+  if (servicio === null) {
+    estado.idServicioEnEdicion = null;
+    formulario.reset();
+    formulario.elements.activo.checked = true;
+    elementos.tituloFormularioServicio.textContent = "Nuevo servicio";
+    elementos.botonGuardarServicio.textContent = "Guardar servicio";
+  } else {
+    estado.idServicioEnEdicion = servicio.id;
+    formulario.elements.nombre.value = servicio.nombre;
+    formulario.elements.precio_mensual.value = servicio.precio_mensual;
+    formulario.elements.disciplina_id.value = servicio.disciplina_id ? String(servicio.disciplina_id) : "";
+    formulario.elements.descripcion.value = servicio.descripcion || "";
+    formulario.elements.destacado.checked = servicio.destacado;
+    formulario.elements.activo.checked = servicio.activo;
+    elementos.tituloFormularioServicio.textContent = "Editar servicio";
+    elementos.botonGuardarServicio.textContent = "Guardar cambios";
+  }
+
+  elementos.panelFormularioServicio.classList.remove("hidden");
+  elementos.panelFormularioServicio.scrollIntoView({ behavior: "smooth", block: "start" });
+  formulario.elements.nombre.focus({ preventScroll: true });
+}
+
+function cerrarFormularioServicio() {
+  estado.idServicioEnEdicion = null;
+  elementos.formularioServicio.reset();
+  limpiarErroresDelServicio();
+  elementos.panelFormularioServicio.classList.add("hidden");
+}
+
+function leerDatosDelServicio() {
+  const campos = elementos.formularioServicio.elements;
+  return {
+    nombre: campos.nombre.value.trim().replace(/\s+/g, " "),
+    precio_mensual: campos.precio_mensual.value.trim(),
+    disciplina_id: campos.disciplina_id.value,
+    descripcion: campos.descripcion.value.trim(),
+    destacado: campos.destacado.checked,
+    activo: campos.activo.checked,
+  };
+}
+
+// Las mismas reglas que tiene la base de datos (ver supabase/schema.sql).
+function validarServicio(datos) {
+  const errores = {};
+
+  if (datos.nombre.length < 2 || datos.nombre.length > 80) {
+    errores.nombre = "El nombre debe tener entre 2 y 80 letras.";
+  }
+  if (!/^\d+$/.test(datos.precio_mensual)) {
+    errores.precio_mensual = "Escribe el precio en pesos, solo números (ejemplo: 85000).";
+  } else if (Number(datos.precio_mensual) > 100000000) {
+    errores.precio_mensual = "Ese precio es demasiado alto.";
+  }
+  if (datos.descripcion.length > 300) {
+    errores.descripcion = "La descripción no puede pasar de 300 letras.";
+  }
+
+  return errores;
+}
+
+function mostrarErroresDelServicio(errores) {
+  const formulario = elementos.formularioServicio;
+  const nombresDeCampo = Object.keys(errores);
+
+  nombresDeCampo.forEach((nombre) => {
+    formulario.elements[nombre].setAttribute("aria-invalid", "true");
+    const parrafoDeError = formulario.querySelector('[data-error-de="' + nombre + '"]');
+    parrafoDeError.textContent = errores[nombre];
+    parrafoDeError.classList.remove("hidden");
+  });
+
+  formulario.elements[nombresDeCampo[0]].focus();
+}
+
+function limpiarErroresDelServicio() {
+  const formulario = elementos.formularioServicio;
+  formulario.querySelectorAll("[aria-invalid]").forEach((campo) => campo.removeAttribute("aria-invalid"));
+  formulario.querySelectorAll("[data-error-de]").forEach((parrafo) => {
+    parrafo.textContent = "";
+    parrafo.classList.add("hidden");
+  });
+}
+
+function quitarErrorDelCampoDeServicio(evento) {
+  const campo = evento.target;
+  if (!campo.name) {
+    return;
+  }
+  campo.removeAttribute("aria-invalid");
+
+  const parrafoDeError = elementos.formularioServicio.querySelector('[data-error-de="' + campo.name + '"]');
+  if (parrafoDeError !== null) {
+    parrafoDeError.textContent = "";
+    parrafoDeError.classList.add("hidden");
+  }
+}
+
+let guardandoServicio = false;
+
+async function guardarServicio(evento) {
+  evento.preventDefault();
+  if (guardandoServicio) {
+    return;
+  }
+  limpiarErroresDelServicio();
+
+  const datos = leerDatosDelServicio();
+  const errores = validarServicio(datos);
+  if (Object.keys(errores).length > 0) {
+    mostrarErroresDelServicio(errores);
+    mostrarAviso("Revisa los campos marcados en rojo.", "error");
+    return;
+  }
+
+  const registro = {
+    nombre: datos.nombre,
+    precio_mensual: Number(datos.precio_mensual),
+    disciplina_id: datos.disciplina_id === "" ? null : Number(datos.disciplina_id),
+    descripcion: datos.descripcion === "" ? null : datos.descripcion,
+    destacado: datos.destacado,
+    activo: datos.activo,
+  };
+  const estaEditando = estado.idServicioEnEdicion !== null;
+
+  guardandoServicio = true;
+  mostrarCargando(estaEditando ? "Guardando cambios..." : "Guardando servicio...");
+  try {
+    if (estaEditando) {
+      const { data, error } = await clienteSupabase
+        .from("servicios")
+        .update(registro)
+        .eq("id", estado.idServicioEnEdicion)
+        .select();
+      if (error) throw error;
+      if (data.length === 0) {
+        throw new Error("No se encontró el servicio. Puede que ya no exista; recarga la página.");
+      }
+    } else {
+      // orden: lo nuevo se coloca al final de la lista del público.
+      registro.orden = estado.servicios.length + 1;
+      const { error } = await clienteSupabase.from("servicios").insert(registro);
+      if (error) throw error;
+    }
+
+    cerrarFormularioServicio();
+    mostrarAviso(estaEditando ? "Servicio actualizado." : "Servicio creado.", "exito");
+    await cargarServicios();
+  } catch (error) {
+    mostrarAviso(describirError(error), "error");
+  } finally {
+    guardandoServicio = false;
+    ocultarCargando();
+  }
+}
+
+async function cambiarVisibilidadDeServicio(servicio) {
+  mostrarCargando("Guardando...");
+  try {
+    const { error } = await clienteSupabase
+      .from("servicios")
+      .update({ activo: !servicio.activo })
+      .eq("id", servicio.id);
+    if (error) throw error;
+
+    mostrarAviso(
+      servicio.activo ? "El servicio ya no aparece en la página." : "El servicio ya aparece en la página.",
+      "exito"
+    );
+    await cargarServicios();
+  } catch (error) {
+    mostrarAviso(describirError(error), "error");
+  } finally {
+    ocultarCargando();
+  }
+}
+
+function manejarClicEnServicios(evento) {
+  const boton = evento.target.closest("button[data-accion]");
+  if (boton === null) {
+    return;
+  }
+
+  const fila = boton.closest("li[data-id]");
+  const servicio = estado.servicios.find((s) => String(s.id) === fila.dataset.id);
+  if (servicio === undefined) {
+    return;
+  }
+
+  if (boton.dataset.accion === "editar-servicio") {
+    abrirFormularioServicio(servicio);
+  } else if (boton.dataset.accion === "cambiar-visibilidad") {
+    cambiarVisibilidadDeServicio(servicio);
+  }
+}
+
+async function abrirVistaServicios() {
+  cerrarFormularioServicio();
+  const disciplinasCargadas = await cargarDisciplinas();
+  if (disciplinasCargadas) {
+    llenarSelectDeDisciplinasDeServicio();
+    await cargarServicios();
+  }
+}
+
+/* =====================================================================
+   MENSAJES (los que llegan del formulario de la página pública)
+   ===================================================================== */
+
+function formatearMomento(textoDeFecha) {
+  const momento = new Date(textoDeFecha);
+  return momento.toLocaleDateString("es-CO", {
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+async function cargarMensajes() {
+  mostrarCargando("Cargando mensajes...");
+  try {
+    const { data, error } = await clienteSupabase
+      .from("mensajes")
+      .select("*, servicios(nombre)")
+      .order("creado_en", { ascending: false })
+      .limit(200);
+    if (error) throw error;
+
+    estado.mensajes = data;
+    estado.mensajesCargados = true;
+    dibujarMensajes();
+    actualizarGloboDeMensajes();
+  } catch (error) {
+    mostrarAviso("No se pudieron cargar los mensajes. " + describirError(error), "error");
+  } finally {
+    ocultarCargando();
+  }
+}
+
+function crearTarjetaDeMensaje(mensaje) {
+  const elemento = document.createElement("li");
+  elemento.className = mensaje.leido ? "tarjeta p-4" : "tarjeta border-l-4 border-l-sol p-4";
+  elemento.dataset.id = String(mensaje.id);
+
+  const arriba = document.createElement("div");
+  arriba.className = "flex flex-wrap items-start justify-between gap-2";
+
+  const izquierda = document.createElement("div");
+  const nombre = document.createElement("p");
+  nombre.className = "font-semibold text-slate-900";
+  nombre.textContent = mensaje.nombre;
+  izquierda.appendChild(nombre);
+
+  const contacto = document.createElement("p");
+  contacto.className = "mt-0.5 text-sm text-slate-600";
+  contacto.textContent = [mensaje.telefono, mensaje.correo].filter(Boolean).join(" · ");
+  izquierda.appendChild(contacto);
+
+  const derecha = document.createElement("div");
+  derecha.className = "text-right";
+  const fecha = document.createElement("p");
+  fecha.className = "text-xs text-slate-500";
+  fecha.textContent = formatearMomento(mensaje.creado_en);
+  derecha.appendChild(fecha);
+  if (!mensaje.leido) {
+    const nuevo = document.createElement("span");
+    nuevo.className = "chip mt-1 bg-sol text-tinta";
+    nuevo.textContent = "Nuevo";
+    derecha.appendChild(nuevo);
+  }
+
+  arriba.appendChild(izquierda);
+  arriba.appendChild(derecha);
+  elemento.appendChild(arriba);
+
+  if (mensaje.servicios) {
+    const interes = document.createElement("p");
+    interes.className = "mt-2 text-sm text-slate-500";
+    interes.textContent = "Le interesa: " + mensaje.servicios.nombre;
+    elemento.appendChild(interes);
+  }
+
+  const texto = document.createElement("p");
+  texto.className = "mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-700";
+  texto.textContent = mensaje.mensaje;
+  elemento.appendChild(texto);
+
+  const acciones = document.createElement("div");
+  acciones.className = "mt-4";
+  const marcar = document.createElement("button");
+  marcar.type = "button";
+  marcar.dataset.accion = "cambiar-leido";
+  marcar.className = "boton boton-chico boton-secundario";
+  marcar.textContent = mensaje.leido ? "Marcar como no leído" : "Marcar como leído";
+  acciones.appendChild(marcar);
+  elemento.appendChild(acciones);
+
+  return elemento;
+}
+
+function dibujarMensajes() {
+  const soloNoLeidos = elementos.filtroNoLeidos.checked;
+  const lista = estado.mensajes.filter((mensaje) => !soloNoLeidos || !mensaje.leido);
+
+  elementos.listaMensajes.replaceChildren();
+  lista.forEach((mensaje) => {
+    elementos.listaMensajes.appendChild(crearTarjetaDeMensaje(mensaje));
+  });
+
+  const hayMensajes = lista.length > 0;
+  elementos.mensajeSinMensajes.classList.toggle("hidden", !estado.mensajesCargados || hayMensajes);
+  elementos.mensajeSinMensajes.textContent =
+    estado.mensajes.length === 0
+      ? "Todavía no has recibido mensajes. Aparecerán aquí cuando alguien escriba desde la página."
+      : "No hay mensajes sin leer.";
+
+  const sinLeer = estado.mensajes.filter((mensaje) => !mensaje.leido).length;
+  elementos.contadorMensajes.textContent = estado.mensajesCargados
+    ? estado.mensajes.length + " en total · " + sinLeer + " sin leer"
+    : "";
+}
+
+async function cambiarEstadoLeido(mensaje) {
+  try {
+    const { error } = await clienteSupabase
+      .from("mensajes")
+      .update({ leido: !mensaje.leido })
+      .eq("id", mensaje.id);
+    if (error) throw error;
+
+    mensaje.leido = !mensaje.leido;
+    dibujarMensajes();
+    actualizarGloboDeMensajes();
+  } catch (error) {
+    mostrarAviso(describirError(error), "error");
+  }
+}
+
+function manejarClicEnMensajes(evento) {
+  const boton = evento.target.closest("button[data-accion]");
+  if (boton === null) {
+    return;
+  }
+
+  const fila = boton.closest("li[data-id]");
+  const mensaje = estado.mensajes.find((m) => String(m.id) === fila.dataset.id);
+  if (mensaje !== undefined) {
+    cambiarEstadoLeido(mensaje);
+  }
+}
+
+// El globo del menú es un extra: si la consulta falla no se avisa nada.
+async function actualizarGloboDeMensajes() {
+  try {
+    const { count, error } = await clienteSupabase
+      .from("mensajes")
+      .select("id", { count: "exact", head: true })
+      .eq("leido", false);
+    if (error) throw error;
+
+    const hay = typeof count === "number" && count > 0;
+    elementos.globoMensajes.textContent = hay ? String(count) : "";
+    elementos.globoMensajes.classList.toggle("hidden", !hay);
+  } catch (error) {
+    elementos.globoMensajes.classList.add("hidden");
+  }
+}
+
+/* =====================================================================
+   PUENTE CON EL ASISTENTE (asistente-ia.js)
+   ===================================================================== */
+
+function abrirVistaAsistente() {
+  if (!window.Asistente) {
+    mostrarAviso("No se pudo cargar el asistente. Recarga la página.", "error");
+    return;
+  }
+  window.Asistente.abrir();
 }
 
 document.addEventListener("DOMContentLoaded", iniciarAplicacion);

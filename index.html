@@ -1,363 +1,240 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestor de Academia</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Academia GA · Fútbol, guitarra y danza</title>
+    <meta
+      name="description"
+      content="Academia formativa con fútbol, guitarra y danza folclórica. Mira los horarios y las tarifas, y escríbenos para reservar un cupo."
+    />
 
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230C1F4A%22/><text x=%2250%22 y=%2268%22 font-family=%22Arial,sans-serif%22 font-size=%2248%22 font-weight=%22bold%22 text-anchor=%22middle%22 fill=%22%23FFC629%22>GA</text></svg>">
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230C1F4A%22/><text x=%2250%22 y=%2268%22 font-family=%22Arial,sans-serif%22 font-size=%2248%22 font-weight=%22bold%22 text-anchor=%22middle%22 fill=%22%23FFC629%22>GA</text></svg>"
+    />
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap"
+    />
 
-  <link rel="stylesheet" href="estilos.css">
-</head>
+    <link rel="stylesheet" href="estilos.css" />
+  </head>
 
-<body class="bg-papel text-slate-800 antialiased">
-  <div id="contenedor-avisos" aria-live="polite"
-       class="pointer-events-none fixed inset-x-4 top-4 z-50 space-y-2 sm:left-auto sm:right-4 sm:w-96"></div>
+  <body class="bg-white text-slate-800 antialiased">
+    <a
+      href="#contenido"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-tinta focus:px-4 focus:py-2 focus:text-white"
+      >Saltar al contenido</a
+    >
 
-  <div id="indicador-cargando" role="status" aria-live="polite"
-       class="fixed inset-0 z-40 hidden bg-papel/70 backdrop-blur-sm">
-    <div class="flex h-full items-center justify-center">
-      <div class="tarjeta flex items-center gap-3 px-5 py-3 shadow-lg">
-        <svg class="h-5 w-5 animate-spin text-tinta" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-        </svg>
-        <span id="texto-cargando" class="text-sm font-medium text-slate-700">Cargando...</span>
+    <!-- Avisos (toasts): los rellena sitio.js con mostrarAviso() -->
+    <div
+      id="contenedor-avisos"
+      aria-live="polite"
+      class="pointer-events-none fixed inset-x-4 top-4 z-50 space-y-2 sm:left-auto sm:right-4 sm:w-96"
+    ></div>
+
+    <header class="sticky top-0 z-30 bg-tinta text-white">
+      <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+        <a href="#inicio" class="flex min-w-0 items-center gap-3">
+          <span
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sol font-titulo text-lg font-bold text-tinta"
+            aria-hidden="true"
+            >GA</span
+          >
+          <span class="truncate font-titulo text-2xl font-bold leading-none">Academia GA</span>
+        </a>
+
+        <nav aria-label="Secciones del sitio" class="flex items-center gap-1">
+          <a href="#servicios" class="enlace-nav hidden sm:inline-block">Servicios</a>
+          <a href="#contacto" class="enlace-nav hidden sm:inline-block">Contacto</a>
+          <a href="admin.html" class="boton boton-sol">Panel</a>
+        </nav>
       </div>
-    </div>
-  </div>
-
-  <dialog id="dialogo-confirmacion"
-          class="m-auto w-[calc(100%-2rem)] max-w-sm rounded-2xl bg-white p-0 text-slate-800 shadow-xl backdrop:bg-tinta/60">
-    <form method="dialog" class="p-6">
-      <h3 id="titulo-confirmacion" class="titulo-tarjeta"></h3>
-      <p id="mensaje-confirmacion" class="mt-2 text-sm text-slate-600"></p>
-      <div class="mt-6 flex justify-end gap-2">
-        <button type="submit" value="cancelar" autofocus class="boton boton-secundario">Cancelar</button>
-        <button id="boton-confirmar" type="submit" value="confirmar" class="boton boton-peligro">Confirmar</button>
-      </div>
-    </form>
-  </dialog>
-
-  <section id="pantalla-problema" class="hidden">
-    <div class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-10">
-      <div class="tarjeta p-6">
-        <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-sol font-titulo text-xl font-bold text-tinta" aria-hidden="true">GA</div>
-        <h1 class="titulo-tarjeta mt-4">La aplicación no pudo empezar</h1>
-        <p id="texto-problema" role="alert" class="mt-2 text-sm text-slate-600"></p>
-        <a href="./" class="boton boton-principal mt-6">Volver a intentar</a>
-      </div>
-    </div>
-  </section>
-
-  <div id="app-principal" class="hidden min-h-screen">
-    <header class="bg-tinta text-white">
-      <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 pb-4 pt-5">
-        <div class="flex min-w-0 items-center gap-3">
-          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sol font-titulo text-xl font-bold text-tinta" aria-hidden="true">GA</div>
-          <div class="min-w-0">
-            <p class="truncate font-titulo text-2xl font-bold leading-tight">Gestor de Academia</p>
-            <p class="truncate text-sm text-blue-200">Estudiantes, pagos y asistencia</p>
-          </div>
-        </div>
-        <p id="fecha-encabezado" class="hidden shrink-0 text-sm text-blue-200 sm:block"></p>
-      </div>
-
-      <nav aria-label="Secciones" class="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4">
-        <button type="button" data-ir-a="dashboard" class="pestana">Dashboard</button>
-        <button type="button" data-ir-a="estudiantes" class="pestana">Estudiantes</button>
-        <button type="button" data-ir-a="asistencia" class="pestana">Asistencia</button>
-        <button type="button" data-ir-a="disciplinas" class="pestana">Disciplinas</button>
-      </nav>
     </header>
 
-    <main class="mx-auto max-w-6xl px-4 py-8">
-      <section data-vista="dashboard" class="hidden">
-        <div class="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 class="titulo-vista">Dashboard</h2>
-            <p id="texto-actualizacion-dashboard" class="mt-1 text-sm text-slate-500"></p>
-          </div>
-          <button id="boton-actualizar-dashboard" type="button" class="boton boton-secundario">Actualizar</button>
-        </div>
+    <main id="contenido">
+      <!-- Portada. La franja de disciplinas se llena desde la base de datos. -->
+      <section id="inicio" class="bg-tinta text-white">
+        <div class="mx-auto max-w-6xl px-4 pb-16 pt-12 sm:pb-24 sm:pt-20">
+          <p class="font-titulo text-xl text-sol">Desde 2019 en el barrio</p>
+          <h1 class="mt-3 max-w-3xl font-titulo text-5xl font-bold leading-[0.95] sm:text-7xl">
+            Aquí los niños encuentran su disciplina
+          </h1>
+          <p class="mt-6 max-w-xl text-lg leading-relaxed text-blue-100">
+            Entrenamos fútbol, enseñamos guitarra y bailamos folclor. Grupos pequeños, profesores que conocen
+            a cada estudiante y asistencia que los acudientes pueden consultar.
+          </p>
 
-        <div class="mt-6 grid gap-4 lg:grid-cols-5">
-          <div class="rounded-3xl bg-tinta p-6 text-white sm:p-8 lg:col-span-3">
-            <div class="flex flex-wrap items-baseline justify-between gap-2">
-              <h3 class="font-titulo text-2xl font-bold">Asistencia de hoy</h3>
-              <span id="dash-fecha" class="text-sm text-blue-200"></span>
-            </div>
-
-            <div id="dash-asistencia-con-datos" class="mt-6 hidden">
-              <div class="flex items-end gap-3">
-                <p id="dash-porcentaje" class="font-titulo text-7xl font-bold leading-none text-sol"></p>
-                <p class="pb-1 text-sm text-blue-200">de presentes sobre los registrados</p>
-              </div>
-              <div class="mt-5 h-3 w-full overflow-hidden rounded-full bg-white/15" role="presentation">
-                <div id="dash-barra" class="h-full rounded-full bg-sol transition-[width] duration-700 motion-reduce:transition-none" style="width: 0%"></div>
-              </div>
-            </div>
-
-            <div id="dash-asistencia-sin-datos" class="mt-6 hidden">
-              <p class="font-titulo text-3xl font-bold">Aún no se ha tomado asistencia hoy</p>
-              <button type="button" data-ir-a="asistencia" class="boton boton-sol mt-4">Tomar asistencia</button>
-            </div>
-
-            <div id="dash-asistencia-sin-estudiantes" class="mt-6 hidden">
-              <p class="font-titulo text-3xl font-bold">No hay estudiantes activos todavía</p>
-              <button type="button" data-ir-a="estudiantes" class="boton boton-sol mt-4">Ir a Estudiantes</button>
-            </div>
-
-            <dl id="dash-asistencia-cifras" class="mt-6 hidden grid grid-cols-3 gap-3 border-t border-white/15 pt-5">
-              <div id="dash-bloque-presentes">
-                <dt class="flex items-center gap-2 text-sm text-blue-200">
-                  <span class="h-2.5 w-2.5 rounded-full bg-emerald-400" aria-hidden="true"></span>Presentes
-                </dt>
-                <dd id="dash-presentes" class="mt-1 font-titulo text-4xl font-bold"></dd>
-              </div>
-              <div id="dash-bloque-ausentes">
-                <dt class="flex items-center gap-2 text-sm text-blue-200">
-                  <span class="h-2.5 w-2.5 rounded-full bg-rose-400" aria-hidden="true"></span>Ausentes
-                </dt>
-                <dd id="dash-ausentes" class="mt-1 font-titulo text-4xl font-bold"></dd>
-              </div>
-              <div>
-                <dt class="flex items-center gap-2 text-sm text-blue-200">
-                  <span class="h-2.5 w-2.5 rounded-full bg-orange-400" aria-hidden="true"></span>Sin registrar
-                </dt>
-                <dd id="dash-sin-registrar" class="mt-1 font-titulo text-4xl font-bold"></dd>
-              </div>
-            </dl>
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a href="#servicios" class="boton boton-sol">Ver servicios y tarifas</a>
+            <a href="#contacto" class="boton border border-white/30 text-white hover:bg-white/10"
+              >Reservar un cupo</a
+            >
           </div>
 
-          <div class="tarjeta p-6 lg:col-span-2">
-            <div class="flex items-center justify-between gap-3">
-              <h3 class="titulo-tarjeta">Estudiantes activos</h3>
-              <p id="dash-activos" class="font-titulo text-5xl font-bold leading-none text-tinta">—</p>
-            </div>
-
-            <h4 class="mt-6 text-sm font-semibold text-slate-500">Estado de pago</h4>
-            <div class="mt-2 flex h-3 w-full overflow-hidden rounded-full bg-slate-100" role="presentation">
-              <div id="dash-tramo-al-dia" class="h-full bg-emerald-500" style="width: 0%"></div>
-              <div id="dash-tramo-pendientes" class="h-full bg-orange-400" style="width: 0%"></div>
-              <div id="dash-tramo-vencidos" class="h-full bg-rose-500" style="width: 0%"></div>
-            </div>
-
-            <dl class="mt-3 divide-y divide-slate-100">
-              <div class="flex items-center justify-between py-2.5">
-                <dt class="flex items-center gap-2 text-sm text-slate-600">
-                  <span class="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true"></span>Al día
-                </dt>
-                <dd id="dash-al-dia" class="font-titulo text-2xl font-bold text-slate-900">—</dd>
-              </div>
-              <div class="flex items-center justify-between py-2.5">
-                <dt class="flex items-center gap-2 text-sm text-slate-600">
-                  <span class="h-2.5 w-2.5 rounded-full bg-orange-400" aria-hidden="true"></span>Pendientes
-                </dt>
-                <dd id="dash-pendientes" class="font-titulo text-2xl font-bold text-slate-900">—</dd>
-              </div>
-              <div class="flex items-center justify-between py-2.5">
-                <dt class="flex items-center gap-2 text-sm text-slate-600">
-                  <span class="h-2.5 w-2.5 rounded-full bg-rose-500" aria-hidden="true"></span>Vencidos
-                </dt>
-                <dd id="dash-vencidos" class="font-titulo text-2xl font-bold text-slate-900">—</dd>
-              </div>
-            </dl>
-          </div>
+          <!-- Lo que ofrece la academia, leído de la tabla disciplinas -->
+          <ul id="lista-disciplinas-portada" class="mt-12 flex flex-wrap gap-3"></ul>
         </div>
       </section>
 
-      <section data-vista="estudiantes" class="hidden">
-        <div class="flex flex-wrap items-end justify-between gap-3">
+      <section id="servicios" class="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:py-20">
+        <h2 class="titulo-seccion">Servicios y tarifas</h2>
+        <p class="mt-2 max-w-2xl text-slate-600">
+          El valor es mensual e incluye el uniforme de entrenamiento. La primera clase es de prueba y no se
+          cobra.
+        </p>
+
+        <p id="mensaje-sin-servicios" class="vacio mt-8 hidden"></p>
+        <div id="lista-servicios" class="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3"></div>
+      </section>
+
+      <section id="contacto" class="scroll-mt-20 bg-papel">
+        <div class="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:py-20 lg:grid-cols-[1fr_1.1fr]">
           <div>
-            <h2 class="titulo-vista">Estudiantes</h2>
-            <p id="contador-estudiantes" class="mt-1 text-sm text-slate-500"></p>
+            <h2 class="titulo-seccion">Escríbenos</h2>
+            <p class="mt-2 text-slate-600">
+              Déjanos tus datos y te contamos los horarios disponibles. Respondemos el mismo día.
+            </p>
+
+            <dl class="mt-8 space-y-5 text-sm">
+              <div>
+                <dt class="font-semibold text-tinta">Dónde entrenamos</dt>
+                <dd class="mt-1 text-slate-600">Cancha del barrio El Prado, Barranquilla</dd>
+              </div>
+              <div>
+                <dt class="font-semibold text-tinta">Horario de atención</dt>
+                <dd class="mt-1 text-slate-600">Lunes a viernes, 2:00 p. m. a 7:00 p. m.</dd>
+              </div>
+              <div>
+                <dt class="font-semibold text-tinta">Teléfono</dt>
+                <dd class="mt-1 text-slate-600">300 000 0000</dd>
+              </div>
+            </dl>
           </div>
-          <button id="boton-nuevo-estudiante" type="button" class="boton boton-principal">+ Nuevo estudiante</button>
-        </div>
 
-        <div id="panel-formulario-estudiante" class="tarjeta mt-6 hidden border-t-4 border-t-sol p-6">
-          <h3 id="titulo-formulario-estudiante" class="titulo-tarjeta">Nuevo estudiante</h3>
+          <!-- novalidate: la validación la hace sitio.js, con mensajes en español -->
+          <form id="formulario-contacto" novalidate class="tarjeta p-6 sm:p-8">
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="sm:col-span-2">
+                <label for="campo-nombre" class="etiqueta"
+                  >Tu nombre <span class="text-rose-600">*</span></label
+                >
+                <input
+                  id="campo-nombre"
+                  name="nombre"
+                  type="text"
+                  maxlength="100"
+                  autocomplete="name"
+                  class="campo"
+                />
+                <p data-error-de="nombre" class="error-de-campo hidden"></p>
+              </div>
 
-          <form id="formulario-estudiante" novalidate class="mt-4 grid gap-4 sm:grid-cols-2">
-            <div class="sm:col-span-2">
-              <label for="campo-nombre" class="etiqueta">Nombre completo <span class="text-rose-600">*</span></label>
-              <input id="campo-nombre" name="nombre_completo" type="text" maxlength="100" autocomplete="off" class="campo">
-              <p data-error-de="nombre_completo" class="error-de-campo hidden"></p>
+              <div>
+                <label for="campo-telefono" class="etiqueta">Teléfono</label>
+                <input
+                  id="campo-telefono"
+                  name="telefono"
+                  type="tel"
+                  maxlength="25"
+                  autocomplete="tel"
+                  placeholder="300 123 4567"
+                  class="campo"
+                />
+                <p data-error-de="telefono" class="error-de-campo hidden"></p>
+              </div>
+
+              <div>
+                <label for="campo-correo" class="etiqueta">Correo</label>
+                <input
+                  id="campo-correo"
+                  name="correo"
+                  type="email"
+                  maxlength="120"
+                  autocomplete="email"
+                  placeholder="nombre@correo.com"
+                  class="campo"
+                />
+                <p data-error-de="correo" class="error-de-campo hidden"></p>
+              </div>
+
+              <p class="-mt-1 text-xs text-slate-500 sm:col-span-2">
+                Escribe al menos un teléfono o un correo para poder responderte.
+              </p>
+
+              <div class="sm:col-span-2">
+                <label for="campo-servicio" class="etiqueta">¿Qué te interesa?</label>
+                <select id="campo-servicio" name="servicio_id" class="campo"></select>
+              </div>
+
+              <div class="sm:col-span-2">
+                <label for="campo-mensaje" class="etiqueta"
+                  >Mensaje <span class="text-rose-600">*</span></label
+                >
+                <textarea
+                  id="campo-mensaje"
+                  name="mensaje"
+                  rows="4"
+                  maxlength="1000"
+                  placeholder="Cuéntanos la edad del estudiante y qué días pueden asistir."
+                  class="campo h-auto py-2"
+                ></textarea>
+                <p data-error-de="mensaje" class="error-de-campo hidden"></p>
+              </div>
+
+              <div class="sm:col-span-2">
+                <button id="boton-enviar" type="submit" class="boton boton-principal w-full sm:w-auto">
+                  Enviar mensaje
+                </button>
+              </div>
             </div>
 
-            <div>
-              <label for="campo-edad" class="etiqueta">Edad <span class="text-rose-600">*</span></label>
-              <input id="campo-edad" name="edad" type="number" inputmode="numeric" min="3" max="99" step="1" class="campo">
-              <p data-error-de="edad" class="error-de-campo hidden"></p>
-            </div>
-
-            <div>
-              <label for="campo-disciplina" class="etiqueta">Disciplina <span class="text-rose-600">*</span></label>
-              <select id="campo-disciplina" name="disciplina_id" class="campo"></select>
-              <p data-error-de="disciplina_id" class="error-de-campo hidden"></p>
-            </div>
-
-            <div>
-              <label for="campo-categoria" class="etiqueta">Categoría</label>
-              <input id="campo-categoria" name="categoria" type="text" maxlength="50" autocomplete="off"
-                     placeholder="Ej. Infantil, Sub-12, Principiante" class="campo">
-              <p data-error-de="categoria" class="error-de-campo hidden"></p>
-            </div>
-
-            <div>
-              <label for="campo-estado-pago" class="etiqueta">Estado de pago <span class="text-rose-600">*</span></label>
-              <select id="campo-estado-pago" name="estado_pago" class="campo">
-                <option value="al_dia" selected>Al día</option>
-                <option value="pendiente">Pendiente</option>
-                <option value="vencido">Vencido</option>
-              </select>
-              <p data-error-de="estado_pago" class="error-de-campo hidden"></p>
-            </div>
-
-            <div class="border-t border-slate-100 pt-4 sm:col-span-2">
-              <h4 class="text-sm font-semibold text-slate-900">Acudiente</h4>
-              <p id="ayuda-acudiente" class="mt-1 text-xs text-slate-500"></p>
-            </div>
-
-            <div>
-              <label for="campo-acudiente-nombre" class="etiqueta">Nombre del acudiente <span data-marca-acudiente class="hidden text-rose-600">*</span></label>
-              <input id="campo-acudiente-nombre" name="acudiente_nombre" type="text" maxlength="100" autocomplete="off" class="campo">
-              <p data-error-de="acudiente_nombre" class="error-de-campo hidden"></p>
-            </div>
-
-            <div>
-              <label for="campo-acudiente-telefono" class="etiqueta">Teléfono del acudiente <span data-marca-acudiente class="hidden text-rose-600">*</span></label>
-              <input id="campo-acudiente-telefono" name="acudiente_telefono" type="tel" maxlength="25" autocomplete="off" class="campo">
-              <p data-error-de="acudiente_telefono" class="error-de-campo hidden"></p>
-            </div>
-
-            <div class="flex flex-col-reverse gap-2 sm:col-span-2 sm:flex-row sm:justify-end">
-              <button id="boton-cancelar-estudiante" type="button" class="boton boton-secundario">Cancelar</button>
-              <button id="boton-guardar-estudiante" type="submit" class="boton boton-principal">Guardar estudiante</button>
+            <!-- Reemplaza al formulario cuando el mensaje se guarda -->
+            <div id="mensaje-enviado" class="hidden text-center">
+              <div
+                class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-700"
+                aria-hidden="true"
+              >
+                ✓
+              </div>
+              <h3 class="titulo-tarjeta mt-4">Mensaje enviado</h3>
+              <p class="mt-2 text-sm text-slate-600">Gracias por escribirnos. Te respondemos hoy mismo.</p>
+              <button id="boton-otro-mensaje" type="button" class="boton boton-secundario mt-6">
+                Enviar otro mensaje
+              </button>
             </div>
           </form>
         </div>
-
-        <div class="mt-6 flex flex-col gap-3 md:flex-row md:items-center">
-          <div class="md:flex-1">
-            <label for="filtro-texto" class="sr-only">Buscar por nombre</label>
-            <input id="filtro-texto" type="search" placeholder="Buscar por nombre" autocomplete="off" class="campo">
-          </div>
-          <div class="md:w-60">
-            <label for="filtro-disciplina" class="sr-only">Filtrar por disciplina</label>
-            <select id="filtro-disciplina" class="campo"></select>
-          </div>
-          <label class="flex items-center gap-2 text-sm text-slate-700">
-            <input id="filtro-inactivos" type="checkbox" class="h-4 w-4 accent-tinta">
-            Mostrar inactivos
-          </label>
-        </div>
-
-        <div class="mt-4">
-          <p id="mensaje-sin-estudiantes" class="vacio hidden"></p>
-
-          <div id="contenedor-tabla-estudiantes" class="md:overflow-hidden md:rounded-2xl md:border md:border-slate-200 md:bg-white">
-            <table class="block w-full text-left text-sm md:table">
-              <thead class="hidden bg-slate-50 text-xs text-slate-500 md:table-header-group">
-                <tr>
-                  <th class="px-4 py-3 font-semibold">Nombre</th>
-                  <th class="px-4 py-3 font-semibold">Edad</th>
-                  <th class="px-4 py-3 font-semibold">Disciplina</th>
-                  <th class="px-4 py-3 font-semibold">Categoría</th>
-                  <th class="px-4 py-3 font-semibold">Acudiente</th>
-                  <th class="px-4 py-3 font-semibold">Pago</th>
-                  <th class="px-4 py-3 text-right font-semibold">Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="cuerpo-tabla-estudiantes" class="block space-y-3 md:table-row-group md:space-y-0 md:divide-y md:divide-slate-100"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section data-vista="asistencia" class="hidden">
-        <h2 class="titulo-vista">Asistencia</h2>
-        <p class="mt-1 max-w-2xl text-sm text-slate-500">Elige la fecha, marca quién vino y pulsa «Guardar asistencia». Solo aparecen los estudiantes activos.</p>
-
-        <div id="raiz-asistencia"></div>
-      </section>
-
-      <section data-vista="disciplinas" class="hidden">
-        <h2 class="titulo-vista">Disciplinas</h2>
-        <p class="mt-1 max-w-2xl text-sm text-slate-500">Son las actividades de la academia (fútbol, guitarra, danza...). Cada estudiante pertenece a una.</p>
-
-        <form id="formulario-disciplina" novalidate class="tarjeta mt-6 flex flex-col gap-3 p-5 sm:flex-row sm:items-end">
-          <div class="sm:flex-1">
-            <label for="campo-disciplina-nombre" class="etiqueta">Nueva disciplina</label>
-            <input id="campo-disciplina-nombre" type="text" maxlength="50" autocomplete="off" placeholder="Ej. Natación" class="campo">
-          </div>
-          <button type="submit" class="boton boton-principal">Agregar disciplina</button>
-        </form>
-
-        <p id="mensaje-sin-disciplinas" class="vacio mt-4 hidden">
-          Aún no hay disciplinas. Agrega la primera con el formulario de arriba.
-        </p>
-        <ul id="lista-disciplinas" class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"></ul>
       </section>
     </main>
-  </div>
 
-  <template id="plantilla-fila-estudiante">
-    <tr class="group block rounded-2xl border border-slate-200 bg-white p-4 data-[inactivo=true]:bg-slate-50 md:table-row md:rounded-none md:border-0 md:p-0">
-      <td class="mb-3 block md:mb-0 md:table-cell md:px-4 md:py-3">
+    <footer class="bg-tinta text-white">
+      <div
+        class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-10 sm:flex-row sm:items-center sm:justify-between"
+      >
         <div class="flex items-center gap-3">
-          <span data-texto="iniciales" class="iniciales group-data-[inactivo=true]:bg-slate-300 group-data-[inactivo=true]:text-white" aria-hidden="true"></span>
-          <div class="min-w-0">
-            <span data-texto="nombre" class="font-semibold text-slate-900 group-data-[inactivo=true]:text-slate-500"></span>
-            <span data-texto="etiqueta-inactivo" class="chip ml-1 hidden bg-slate-200 text-slate-600">Inactivo</span>
-          </div>
+          <span
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sol font-titulo text-base font-bold text-tinta"
+            aria-hidden="true"
+            >GA</span
+          >
+          <p class="font-titulo text-xl font-bold">Academia GA</p>
         </div>
-      </td>
+        <p class="max-w-md text-sm text-blue-200">
+          Proyecto escolar de programación. La academia, los precios y los estudiantes son ficticios y sirven
+          para demostrar la aplicación.
+        </p>
+        <a href="admin.html" class="enlace-nav shrink-0 self-start sm:self-auto">Entrar al panel</a>
+      </div>
+    </footer>
 
-      <td data-etiqueta="Edad" class="celda group-data-[inactivo=true]:text-slate-400 md:whitespace-nowrap">
-        <span data-texto="edad"></span>
-      </td>
-
-      <td data-etiqueta="Disciplina" class="celda group-data-[inactivo=true]:text-slate-400">
-        <span data-texto="disciplina"></span>
-      </td>
-
-      <td data-etiqueta="Categoría" class="celda group-data-[inactivo=true]:text-slate-400">
-        <span data-texto="categoria"></span>
-      </td>
-
-      <td data-etiqueta="Acudiente" class="celda group-data-[inactivo=true]:text-slate-400">
-        <div>
-          <p data-texto="acudiente"></p>
-          <p data-texto="telefono-acudiente" class="text-xs text-slate-500 group-data-[inactivo=true]:text-slate-400"></p>
-        </div>
-      </td>
-
-      <td data-etiqueta="Pago" class="celda">
-        <span data-texto="estado-pago" class="chip"></span>
-      </td>
-
-      <td class="mt-3 block md:mt-0 md:table-cell md:whitespace-nowrap md:px-4 md:py-3">
-        <div class="flex flex-wrap gap-2 md:flex-nowrap md:justify-end">
-          <button type="button" data-accion="editar" class="boton boton-chico boton-secundario">Editar</button>
-          <button type="button" data-accion="desactivar" class="boton boton-chico border border-rose-200 bg-white text-rose-700 hover:bg-rose-50">Desactivar</button>
-          <button type="button" data-accion="reactivar" class="boton boton-chico hidden border border-emerald-300 bg-white text-emerald-700 hover:bg-emerald-50">Reactivar</button>
-        </div>
-      </td>
-    </tr>
-  </template>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
-  <script src="conexion.js"></script>
-  <script src="app.js"></script>
-  <script src="asistencia-react.js"></script>
-</body>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+    <script src="conexion.js"></script>
+    <script src="sitio.js"></script>
+  </body>
 </html>
