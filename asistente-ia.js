@@ -1,15 +1,15 @@
 "use strict";
 
 /* =====================================================================
-   asistente-ia.js · El asistente del panel
+   asistente-ia.js · El asistente del profesor
 
    Trabaja en dos niveles, y es importante saber cuál es cuál:
 
    1. ANÁLISIS LOCAL (siempre funciona, sin Internet a ninguna IA).
       Son reglas y cuentas sobre los datos de la academia: quién está
-      faltando, a quién hay que cobrarle y cuánto se espera facturar.
-      No es un modelo de lenguaje: cada conclusión se puede explicar
-      con la regla que la produjo, y por eso la pantalla las muestra.
+      faltando y a quién hay que cobrarle. No es un modelo de lenguaje:
+      cada conclusión se puede explicar con la regla que la produjo, y
+      por eso la pantalla las muestra.
 
    2. MODELO DE LENGUAJE (opcional).
       Si en Supabase está configurada la clave ANTHROPIC_API_KEY, las
@@ -56,30 +56,25 @@
   async function reunirDatos() {
     const desde = fechaHaceDias(DIAS_QUE_MIRA);
 
-    const [respuestaEstudiantes, respuestaAsistencias, respuestaServicios, respuestaMensajes] =
-      await Promise.all([
-        clienteSupabase
-          .from("estudiantes")
-          .select("id, nombre_completo, edad, estado_pago, activo, disciplina_id, disciplinas(nombre)")
-          .eq("activo", true),
-        clienteSupabase
-          .from("asistencias")
-          .select("estudiante_id, fecha, asistio")
-          .gte("fecha", desde)
-          .order("fecha", { ascending: false }),
-        clienteSupabase.from("servicios").select("id, nombre, precio_mensual, disciplina_id, activo"),
-        clienteSupabase.from("mensajes").select("id, creado_en, leido"),
-      ]);
+    const [respuestaEstudiantes, respuestaAsistencias] = await Promise.all([
+      clienteSupabase
+        .from("estudiantes")
+        .select("id, nombre_completo, edad, estado_pago, activo, disciplina_id, disciplinas(nombre)")
+        .eq("activo", true),
+      clienteSupabase
+        .from("asistencias")
+        .select("estudiante_id, fecha, asistio")
+        .gte("fecha", desde)
+        .order("fecha", { ascending: false }),
+    ]);
 
-    [respuestaEstudiantes, respuestaAsistencias, respuestaServicios, respuestaMensajes].forEach((r) => {
+    [respuestaEstudiantes, respuestaAsistencias].forEach((r) => {
       if (r.error) throw r.error;
     });
 
     return {
       estudiantes: respuestaEstudiantes.data,
       asistencias: respuestaAsistencias.data,
-      servicios: respuestaServicios.data,
-      mensajes: respuestaMensajes.data,
     };
   }
 
@@ -137,16 +132,6 @@
     return { puntos, razones, porcentaje, faltasSeguidas };
   }
 
-  // Tarifa del servicio más barato de esa disciplina: sirve para estimar
-  // cuánto entra al mes. Es una estimación, no la facturación real.
-  function tarifaDeLaDisciplina(idDisciplina, servicios) {
-    const delArea = servicios.filter((s) => s.activo && s.disciplina_id === idDisciplina);
-    if (delArea.length === 0) {
-      return 0;
-    }
-    return Math.min(...delArea.map((s) => s.precio_mensual));
-  }
-
   function analizar(datosCrudos) {
     const porEstudiante = agruparAsistenciaPorEstudiante(datosCrudos.asistencias);
 
@@ -158,37 +143,25 @@
       .filter((fila) => fila.puntos >= 2)
       .sort((a, b) => b.puntos - a.puntos);
 
+    // Primero los vencidos, que llevan más tiempo sin pagar.
     const porCobrar = datosCrudos.estudiantes
       .filter((e) => e.estado_pago !== "al_dia")
-      .map((e) => ({ estudiante: e, tarifa: tarifaDeLaDisciplina(e.disciplina_id, datosCrudos.servicios) }))
-      .sort(
-        (a, b) =>
-          (a.estudiante.estado_pago === "vencido" ? -1 : 1) -
-          (b.estudiante.estado_pago === "vencido" ? -1 : 1)
-      );
+      .sort((a, b) => (a.estado_pago === "vencido" ? 0 : 1) - (b.estado_pago === "vencido" ? 0 : 1));
 
-    const ingresoEsperado = datosCrudos.estudiantes.reduce(
-      (total, e) => total + tarifaDeLaDisciplina(e.disciplina_id, datosCrudos.servicios),
-      0
-    );
-    const ingresoEnRiesgo = porCobrar.reduce((total, fila) => total + fila.tarifa, 0);
+    const vencidos = porCobrar.filter((e) => e.estado_pago === "vencido").length;
 
     const totalRegistros = datosCrudos.asistencias.length;
     const presentes = datosCrudos.asistencias.filter((a) => a.asistio).length;
     const asistenciaPromedio = totalRegistros > 0 ? Math.round((presentes / totalRegistros) * 100) : null;
 
-    const mensajesSinLeer = datosCrudos.mensajes.filter((m) => !m.leido).length;
-
     return {
       activos: datosCrudos.estudiantes.length,
+      alDia: datosCrudos.estudiantes.filter((e) => e.estado_pago === "al_dia").length,
       conRiesgo: conRiesgo,
       porCobrar: porCobrar,
-      ingresoEsperado: ingresoEsperado,
-      ingresoEnRiesgo: ingresoEnRiesgo,
+      vencidos: vencidos,
       asistenciaPromedio: asistenciaPromedio,
       registrosDeAsistencia: totalRegistros,
-      mensajesSinLeer: mensajesSinLeer,
-      totalMensajes: datosCrudos.mensajes.length,
     };
   }
 
@@ -241,21 +214,19 @@
   function redactarMensajeDeRiesgo(fila) {
     const nombre = fila.estudiante.nombre_completo.split(" ")[0];
     return (
-      "Hola, le escribimos de la Academia GA. Notamos que " +
+      "Hola, le escribimos de la academia. Notamos que " +
       nombre +
       " no ha venido a las últimas clases y queremos saber si todo está bien. " +
       "Nos encantaría volver a verlo. ¿Le sirve que conversemos esta semana?"
     );
   }
 
-  function redactarMensajeDeCobro(fila) {
-    const nombre = fila.estudiante.nombre_completo.split(" ")[0];
+  function redactarMensajeDeCobro(estudiante) {
+    const nombre = estudiante.nombre_completo.split(" ")[0];
     return (
-      "Hola, le saludamos de la Academia GA. Le recordamos que la mensualidad de " +
+      "Hola, le saludamos de la academia. Le recordamos que la mensualidad de " +
       nombre +
-      " está pendiente" +
-      (fila.tarifa > 0 ? " (" + formatearPrecio(fila.tarifa) + ")" : "") +
-      ". Si ya la pagó, por favor ignore este mensaje. ¡Gracias!"
+      " está pendiente. Si ya la pagó, por favor ignore este mensaje. ¡Gracias!"
     );
   }
 
@@ -267,8 +238,7 @@
       hallazgos.push({
         nivel: "medio",
         titulo: "Todavía no hay estudiantes activos",
-        detalle:
-          "Agrega estudiantes en la vista Estudiantes para que el asistente pueda analizar la academia.",
+        detalle: "Agrégalos en la vista Estudiantes para que el asistente pueda analizar tus grupos.",
       });
     }
 
@@ -305,30 +275,29 @@
     }
 
     if (analisis.porCobrar.length > 0) {
-      const vencidos = analisis.porCobrar.filter((f) => f.estudiante.estado_pago === "vencido");
       hallazgos.push({
-        nivel: vencidos.length > 0 ? "alto" : "medio",
-        titulo: "Tienes " + formatearPrecio(analisis.ingresoEnRiesgo) + " por cobrar este mes",
+        nivel: analisis.vencidos > 0 ? "alto" : "medio",
+        titulo:
+          analisis.porCobrar.length === 1
+            ? "1 estudiante no está al día con el pago"
+            : analisis.porCobrar.length + " estudiantes no están al día con el pago",
         detalle:
-          analisis.porCobrar.length +
-          " estudiantes no están al día" +
-          (vencidos.length > 0 ? ", y " + vencidos.length + " ya tienen el pago vencido" : "") +
-          ". Empieza por " +
-          analisis.porCobrar[0].estudiante.nombre_completo +
+          (analisis.vencidos > 0
+            ? analisis.vencidos + " ya tienen el pago vencido. "
+            : "Ninguno llegó todavía a vencido. ") +
+          "Empieza por " +
+          analisis.porCobrar[0].nombre_completo +
           ".",
         mensajeSugerido: redactarMensajeDeCobro(analisis.porCobrar[0]),
       });
     }
 
-    if (analisis.mensajesSinLeer > 0) {
+    if (analisis.registrosDeAsistencia === 0 && analisis.activos > 0) {
       hallazgos.push({
         nivel: "medio",
-        titulo:
-          analisis.mensajesSinLeer === 1
-            ? "Tienes 1 mensaje sin responder"
-            : "Tienes " + analisis.mensajesSinLeer + " mensajes sin responder",
+        titulo: "No has registrado asistencia",
         detalle:
-          "Son personas que escribieron desde la página pública. Respóndeles hoy para no perder el cupo.",
+          "Sin asistencia no se puede saber quién está faltando. Tómala en la vista Asistencia y vuelve aquí.",
       });
     }
 
@@ -337,7 +306,7 @@
         nivel: "bueno",
         titulo: "Todo marcha bien",
         detalle:
-          "Nadie está en riesgo de retirarse, todos los pagos están al día y no hay mensajes pendientes. " +
+          "Nadie está en riesgo de retirarse y todos los pagos están al día. " +
           "Sigue registrando la asistencia para que el asistente pueda avisarte a tiempo.",
       });
     }
@@ -371,14 +340,16 @@
   function dibujarResumen(analisis) {
     panel.resumenNegocio.replaceChildren();
 
+    panel.resumenNegocio.appendChild(crearDatoDeResumen("Estudiantes activos", String(analisis.activos)));
+
     panel.resumenNegocio.appendChild(
       crearDatoDeResumen(
-        "Ingreso esperado al mes",
-        formatearPrecio(analisis.ingresoEsperado),
-        "Estimado con la tarifa de cada disciplina"
+        "Pagos al día",
+        analisis.activos === 0 ? "—" : analisis.alDia + " de " + analisis.activos,
+        analisis.porCobrar.length > 0 ? analisis.porCobrar.length + " por cobrar" : "Nadie debe mensualidad"
       )
     );
-    panel.resumenNegocio.appendChild(crearDatoDeResumen("Estudiantes activos", String(analisis.activos)));
+
     panel.resumenNegocio.appendChild(
       crearDatoDeResumen(
         "Asistencia promedio",
@@ -396,14 +367,13 @@
   function resumenParaElModelo(analisis) {
     return {
       estudiantes_activos: analisis.activos,
-      estudiantes_en_riesgo: analisis.conRiesgo.length,
+      estudiantes_al_dia: analisis.alDia,
       estudiantes_sin_pagar: analisis.porCobrar.length,
-      ingreso_esperado_mes: analisis.ingresoEsperado,
-      ingreso_en_riesgo: analisis.ingresoEnRiesgo,
+      estudiantes_con_pago_vencido: analisis.vencidos,
+      estudiantes_en_riesgo: analisis.conRiesgo.length,
       asistencia_promedio_porcentaje: analisis.asistenciaPromedio,
       registros_de_asistencia: analisis.registrosDeAsistencia,
-      mensajes_sin_leer: analisis.mensajesSinLeer,
-      mensajes_totales: analisis.totalMensajes,
+      dias_analizados: DIAS_QUE_MIRA,
     };
   }
 
@@ -413,20 +383,17 @@
 
     if (/cobr|pago|deuda|plata|dinero|mensualidad|debe/.test(texto)) {
       if (analisis.porCobrar.length === 0) {
-        return "Todos los estudiantes están al día con el pago. No tienes nada por cobrar este mes.";
+        return "Todos tus estudiantes están al día con el pago. No tienes nada por cobrar.";
       }
       const lista = analisis.porCobrar
-        .slice(0, 5)
-        .map(
-          (f) => "· " + f.estudiante.nombre_completo + " (" + f.estudiante.estado_pago.replace("_", " ") + ")"
-        )
+        .slice(0, 6)
+        .map((e) => "· " + e.nombre_completo + " (" + e.estado_pago.replace("_", " ") + ")")
         .join("\n");
       return (
-        "Tienes " +
-        formatearPrecio(analisis.ingresoEnRiesgo) +
-        " por cobrar entre " +
         analisis.porCobrar.length +
-        " estudiantes:\n" +
+        " estudiantes no están al día" +
+        (analisis.vencidos > 0 ? ", y " + analisis.vencidos + " ya tienen el pago vencido" : "") +
+        ":\n" +
         lista
       );
     }
@@ -436,7 +403,7 @@
         return "Ningún estudiante muestra señales de querer retirarse. La asistencia viene estable.";
       }
       const lista = analisis.conRiesgo
-        .slice(0, 5)
+        .slice(0, 6)
         .map((f) => "· " + f.estudiante.nombre_completo + ": " + f.razones.join(", "))
         .join("\n");
       return "Estos estudiantes necesitan atención:\n" + lista;
@@ -457,46 +424,31 @@
       );
     }
 
-    if (/mensaje|contacto|escrib|cliente|interesad/.test(texto)) {
+    if (/cuantos|cuántos|activ|grupo|estudiante/.test(texto)) {
       return (
-        "Has recibido " +
-        analisis.totalMensajes +
-        " mensajes desde la página, y " +
-        analisis.mensajesSinLeer +
-        " están sin leer."
-      );
-    }
-
-    if (/ingreso|ganancia|factur|cuanto|vender|venta/.test(texto)) {
-      return (
-        "Con " +
+        "Tienes " +
         analisis.activos +
-        " estudiantes activos, el ingreso esperado del mes es " +
-        formatearPrecio(analisis.ingresoEsperado) +
-        ". De eso, " +
-        formatearPrecio(analisis.ingresoEnRiesgo) +
-        " está sin cobrar."
+        " estudiantes activos, " +
+        analisis.alDia +
+        " de ellos al día con el pago."
       );
     }
 
     return (
-      "Esto es lo que veo hoy en la academia:\n" +
+      "Esto es lo que veo hoy:\n" +
       "· " +
       analisis.activos +
       " estudiantes activos\n" +
       "· " +
-      formatearPrecio(analisis.ingresoEsperado) +
-      " de ingreso esperado al mes\n" +
-      "· " +
       analisis.porCobrar.length +
-      " estudiantes sin pagar\n" +
+      " sin pagar la mensualidad\n" +
       "· " +
       analisis.conRiesgo.length +
-      " estudiantes en riesgo de retirarse\n" +
+      " en riesgo de retirarse\n" +
       "· " +
-      analisis.mensajesSinLeer +
-      " mensajes sin leer\n\n" +
-      "Puedes preguntarme por cobros, asistencia, riesgo de deserción o ingresos."
+      (analisis.asistenciaPromedio === null ? "sin" : analisis.asistenciaPromedio + "% de") +
+      " asistencia promedio\n\n" +
+      "Puedes preguntarme por cobros, asistencia o riesgo de deserción."
     );
   }
 
@@ -537,7 +489,7 @@
         "Responde el análisis local, con reglas sobre tus datos. " +
         "Para usar un modelo de lenguaje, configura la clave en Supabase (ver el README).";
     } else {
-      panel.estadoIa.textContent = "Pregunta por cobros, asistencia, riesgo de deserción o ingresos.";
+      panel.estadoIa.textContent = "Pregunta por cobros, asistencia o riesgo de deserción.";
     }
   }
 
@@ -586,8 +538,8 @@
     const preguntas = [
       "¿A quién debo cobrarle?",
       "¿Quién está faltando mucho?",
-      "¿Cuánto espero facturar este mes?",
       "¿Cómo va la asistencia?",
+      "¿Cuántos estudiantes activos tengo?",
     ];
 
     panel.sugerencias.replaceChildren();
@@ -619,7 +571,7 @@
     }
     escribirEstadoDeLaIa();
 
-    mostrarCargando("Analizando la academia...");
+    mostrarCargando("Analizando tus grupos...");
     try {
       datos = await reunirDatos();
       const analisis = analizar(datos);

@@ -4,11 +4,10 @@
 -- Supabase → SQL Editor → New query → pegar todo → Run.
 -- Es seguro ejecutarlo varias veces: no borra datos.
 --
--- Deja la base SEGURA:
---   · El público (rol anon) solo ve disciplinas y servicios, y puede
---     enviar un mensaje de contacto. No ve ni toca estudiantes.
---   · Los datos de la academia exigen una sesión iniciada Y estar
---     registrado en la tabla administradores (ver administrador.sql).
+-- Deja la base CERRADA: no se puede leer ni escribir nada sin haber
+-- iniciado sesión Y estar registrado en la tabla administradores
+-- (ver administrador.sql). Los datos de los estudiantes y de sus
+-- acudientes no son visibles para nadie más.
 -- =====================================================================
 
 
@@ -53,7 +52,7 @@ alter table public.estudiantes add constraint estudiantes_acudiente_menores chec
   )
 );
 
--- search_path fijo: una función sin él puede ejecutar tablas de otro esquema.
+-- search_path fijo: una función sin él puede acabar usando tablas de otro esquema.
 create or replace function public.actualizar_fecha_modificacion()
 returns trigger
 language plpgsql
@@ -83,50 +82,8 @@ create table if not exists public.asistencias (
 );
 
 
--- Catálogo que se muestra en la página pública, con su tarifa mensual.
-create table if not exists public.servicios (
-  id              bigint generated always as identity primary key,
-  nombre          text        not null,
-  descripcion     text,
-  precio_mensual  integer     not null,
-  disciplina_id   bigint      references public.disciplinas (id) on delete set null,
-  destacado       boolean     not null default false,
-  activo          boolean     not null default true,
-  orden           integer     not null default 0,
-  creado_en       timestamptz not null default now(),
-
-  constraint servicios_nombre_no_vacio check (length(trim(nombre)) between 2 and 80),
-  constraint servicios_precio_valido   check (precio_mensual between 0 and 100000000),
-  constraint servicios_descripcion_corta check (descripcion is null or length(descripcion) <= 300)
-);
-
-
--- Formulario de contacto. Los límites de longitud evitan que alguien
--- llene la base con un mensaje enorme, porque cualquiera puede escribir aquí.
-create table if not exists public.mensajes (
-  id           bigint generated always as identity primary key,
-  nombre       text        not null,
-  telefono     text,
-  correo       text,
-  mensaje      text        not null,
-  servicio_id  bigint      references public.servicios (id) on delete set null,
-  leido        boolean     not null default false,
-  creado_en    timestamptz not null default now(),
-
-  constraint mensajes_nombre_valido   check (length(trim(nombre)) between 2 and 100),
-  constraint mensajes_mensaje_valido  check (length(trim(mensaje)) between 10 and 1000),
-  constraint mensajes_telefono_valido check (telefono is null or length(telefono) <= 25),
-  constraint mensajes_correo_valido   check (correo is null or length(correo) <= 120),
-  -- Sin teléfono ni correo no hay forma de responderle a la persona.
-  constraint mensajes_contacto_minimo check (
-    nullif(trim(telefono), '') is not null or nullif(trim(correo), '') is not null
-  )
-);
-
-
 -- Quién puede entrar al panel. Esta tabla no se toca desde la aplicación:
--- solo desde el SQL Editor (ver administrador.sql). Es importante porque
--- este proyecto de Supabase puede tener usuarios de otras aplicaciones.
+-- solo desde el SQL Editor (ver administrador.sql).
 create table if not exists public.administradores (
   usuario_id  uuid        primary key references auth.users (id) on delete cascade,
   nombre      text,
@@ -141,14 +98,12 @@ create table if not exists public.administradores (
 create index if not exists idx_estudiantes_disciplina on public.estudiantes (disciplina_id);
 create index if not exists idx_estudiantes_activo     on public.estudiantes (activo);
 create index if not exists idx_asistencias_fecha      on public.asistencias (fecha);
-create index if not exists idx_servicios_orden        on public.servicios (activo, orden);
-create index if not exists idx_mensajes_recientes     on public.mensajes (creado_en desc);
 
 
 -- ---------------------------------------------------------------------
--- 3. ¿QUIÉN ES ADMINISTRADOR?
---    security definer: la función puede leer la tabla administradores
---    aunque quien pregunta no tenga permiso para leerla.
+-- 3. ¿QUIÉN PUEDE ENTRAR?
+--    security definer: la función lee la tabla administradores aunque
+--    quien pregunta no tenga permiso para leerla.
 -- ---------------------------------------------------------------------
 
 create or replace function public.es_administrador()
@@ -170,64 +125,27 @@ grant execute on function public.es_administrador() to authenticated;
 -- ---------------------------------------------------------------------
 -- 4. SEGURIDAD: Row Level Security
 --    Con RLS activado y sin política para un rol, ese rol no puede nada.
+--    Aquí no hay ninguna política para el rol anónimo: sin sesión, nada.
 -- ---------------------------------------------------------------------
 
 alter table public.disciplinas     enable row level security;
 alter table public.estudiantes     enable row level security;
 alter table public.asistencias     enable row level security;
-alter table public.servicios       enable row level security;
-alter table public.mensajes        enable row level security;
 alter table public.administradores enable row level security;
 
--- Políticas de versiones anteriores (daban acceso total a cualquiera).
-drop policy if exists "Autenticados gestionan disciplinas" on public.disciplinas;
-drop policy if exists "Autenticados gestionan estudiantes" on public.estudiantes;
-drop policy if exists "Autenticados gestionan asistencias" on public.asistencias;
-drop policy if exists "Anónimos gestionan disciplinas"     on public.disciplinas;
-drop policy if exists "Anónimos gestionan estudiantes"     on public.estudiantes;
-drop policy if exists "Anónimos gestionan asistencias"     on public.asistencias;
+drop policy if exists "Profesor gestiona disciplinas" on public.disciplinas;
+drop policy if exists "Profesor gestiona estudiantes" on public.estudiantes;
+drop policy if exists "Profesor gestiona asistencias" on public.asistencias;
 
-drop policy if exists "Público ve disciplinas"             on public.disciplinas;
-drop policy if exists "Administrador gestiona disciplinas" on public.disciplinas;
-drop policy if exists "Administrador gestiona estudiantes" on public.estudiantes;
-drop policy if exists "Administrador gestiona asistencias" on public.asistencias;
-drop policy if exists "Público ve servicios activos"       on public.servicios;
-drop policy if exists "Administrador gestiona servicios"   on public.servicios;
-drop policy if exists "Cualquiera envía un mensaje"        on public.mensajes;
-drop policy if exists "Administrador gestiona mensajes"    on public.mensajes;
-
--- Disciplinas y servicios: son el catálogo, se ven sin iniciar sesión.
-create policy "Público ve disciplinas"
-  on public.disciplinas for select to anon, authenticated
-  using (true);
-
-create policy "Público ve servicios activos"
-  on public.servicios for select to anon, authenticated
-  using (activo);
-
--- Contacto: cualquiera puede escribir, nadie puede leer salvo el administrador.
-create policy "Cualquiera envía un mensaje"
-  on public.mensajes for insert to anon, authenticated
-  with check (true);
-
--- Todo lo demás exige ser administrador.
-create policy "Administrador gestiona disciplinas"
+create policy "Profesor gestiona disciplinas"
   on public.disciplinas for all to authenticated
   using (public.es_administrador()) with check (public.es_administrador());
 
-create policy "Administrador gestiona servicios"
-  on public.servicios for all to authenticated
-  using (public.es_administrador()) with check (public.es_administrador());
-
-create policy "Administrador gestiona mensajes"
-  on public.mensajes for all to authenticated
-  using (public.es_administrador()) with check (public.es_administrador());
-
-create policy "Administrador gestiona estudiantes"
+create policy "Profesor gestiona estudiantes"
   on public.estudiantes for all to authenticated
   using (public.es_administrador()) with check (public.es_administrador());
 
-create policy "Administrador gestiona asistencias"
+create policy "Profesor gestiona asistencias"
   on public.asistencias for all to authenticated
   using (public.es_administrador()) with check (public.es_administrador());
 
@@ -243,16 +161,8 @@ create policy "Administrador gestiona asistencias"
 revoke all on public.disciplinas     from anon;
 revoke all on public.estudiantes     from anon;
 revoke all on public.asistencias     from anon;
-revoke all on public.servicios       from anon;
-revoke all on public.mensajes        from anon;
 revoke all on public.administradores from anon, authenticated;
-
-grant select on public.disciplinas to anon;
-grant select on public.servicios   to anon;
-grant insert on public.mensajes    to anon;
 
 grant select, insert, update, delete on public.disciplinas to authenticated;
 grant select, insert, update, delete on public.estudiantes to authenticated;
 grant select, insert, update, delete on public.asistencias to authenticated;
-grant select, insert, update, delete on public.servicios   to authenticated;
-grant select, insert, update, delete on public.mensajes    to authenticated;
