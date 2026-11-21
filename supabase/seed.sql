@@ -1,47 +1,37 @@
--- =====================================================================
--- seed.sql · Datos de prueba (todos ficticios)
--- =====================================================================
--- Ejecutar DESPUÉS de schema.sql, en Supabase → SQL Editor.
--- Es seguro ejecutarlo más de una vez: no duplica nada.
---
--- Crea 3 disciplinas y 10 estudiantes (9 activos y 1 inactivo).
--- Con los 9 activos el dashboard muestra: 5 al día · 2 pendientes · 2 vencidos.
--- =====================================================================
-
-insert into public.disciplinas (nombre) values
-  ('Fútbol'),
-  ('Guitarra'),
-  ('Danza folclórica')
-on conflict (nombre) do nothing;
+with profesor as (
+  select id from auth.users where email = 'CAMBIA-ESTO@correo.com'
+)
+insert into public.disciplinas (profesor_id, nombre)
+select profesor.id, v.nombre
+from profesor, (values ('Fútbol'), ('Guitarra'), ('Danza folclórica')) as v (nombre)
+on conflict (profesor_id, nombre) do nothing;
 
 
+with profesor as (
+  select id from auth.users where email = 'CAMBIA-ESTO@correo.com'
+)
 insert into public.estudiantes
-  (nombre_completo, edad, disciplina_id, categoria,
+  (profesor_id, nombre_completo, edad, disciplina_id, categoria,
    acudiente_nombre, acudiente_telefono, estado_pago, activo)
 select
-  v.nombre_completo, v.edad, d.id, v.categoria,
+  profesor.id, v.nombre_completo, v.edad, d.id, v.categoria,
   v.acudiente_nombre, v.acudiente_telefono, v.estado_pago, v.activo
-from (values
+from profesor
+cross join (values
   ('Santiago Pérez Mora',   9,  'Fútbol',           'Infantil',     'Marta Mora',     '300 000 0001', 'al_dia',    true),
   ('Mateo Gómez Ruiz',      12, 'Fútbol',           'Sub-12',       'Carlos Gómez',   '300 000 0002', 'pendiente', true),
   ('Valentina Castro Díaz', 15, 'Fútbol',           'Sub-15',       'Luz Díaz',       '300 000 0003', 'al_dia',    true),
   ('Samuel Ortiz Vega',     7,  'Fútbol',           'Infantil',     'Andrea Vega',    '300 000 0004', 'vencido',   true),
-
   ('Isabella Rojas Peña',   11, 'Guitarra',         'Principiante', 'Julián Rojas',   '300 000 0005', 'al_dia',    true),
   ('Daniel Herrera Lugo',   16, 'Guitarra',         'Intermedio',   'Patricia Lugo',  '300 000 0006', 'pendiente', true),
-  -- Estudiante adulto: el acudiente solo es obligatorio para menores de 18.
   ('Camilo Vargas Soto',    28, 'Guitarra',         'Adultos',      null,             '300 000 0007', 'al_dia',    true),
-
   ('Sofía Martínez León',   8,  'Danza folclórica', 'Infantil',     'Diana León',     '300 000 0008', 'al_dia',    true),
   ('Laura Jiménez Cruz',    14, 'Danza folclórica', 'Juvenil',      'Hernán Jiménez', '300 000 0009', 'vencido',   true),
-
-  -- Estudiante retirado: sirve para probar «Mostrar inactivos».
   ('Andrés Fuentes Mejía',  10, 'Danza folclórica', 'Infantil',     'Rosa Mejía',     '300 000 0010', 'al_dia',    false)
 ) as v (nombre_completo, edad, disciplina, categoria,
         acudiente_nombre, acudiente_telefono, estado_pago, activo)
-join public.disciplinas d on d.nombre = v.disciplina
+join public.disciplinas d on d.nombre = v.disciplina and d.profesor_id = profesor.id
 where not exists (
-  select 1
-  from public.estudiantes e
-  where e.nombre_completo = v.nombre_completo
+  select 1 from public.estudiantes e
+  where e.profesor_id = profesor.id and e.nombre_completo = v.nombre_completo
 );
