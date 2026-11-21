@@ -1,24 +1,24 @@
 # Contexto para Claude (traspaso de sesión)
 
-Este archivo resume el proyecto hasta el 2026-11-14 para que otro Claude pueda
+Este archivo resume el proyecto hasta el 2026-11-21 para que otro Claude pueda
 seguir trabajando sin redescubrirlo. Léelo junto con `README.md`, que es la
 documentación completa para personas.
 
 ## Qué es el proyecto
 
 **Gestor de Academia**: proyecto escolar (universitario). Es una **herramienta
-interna para un profesor** de una academia formativa (deportes, música, danza):
-lleva sus estudiantes, el estado de sus pagos y la asistencia diaria.
+interna para profesores** de una academia formativa (deportes, música, danza):
+cada profesor lleva sus estudiantes, el estado de sus pagos y la asistencia diaria.
 
 **No es una página para ofrecer servicios ni captar clientes.** Hubo una versión
 con sitio público (portada, catálogo de tarifas y formulario de contacto) y se
-eliminó a petición de la autora: el objetivo es que los profesores lleven las
-cuentas de sus estudiantes, no vender. No vuelvas a añadir esa parte.
+eliminó a petición de la autora. No vuelvas a añadir esa parte.
 
 Una sola página (`index.html`) con login y cinco vistas: **Dashboard**,
 **Estudiantes**, **Asistencia**, **Disciplinas** y **Asistente**.
 
-Todo en español: código, comentarios, commits y textos.
+Todo en español: código, commits y textos. **El código no lleva comentarios**
+(lo pidió la autora): se explica con buenos nombres y con el README.
 
 - Repositorio: `xioveer/app-local` en GitHub.
 - **Dos ramas con el mismo contenido:** `main` (la de trabajo) y
@@ -30,46 +30,55 @@ Todo en español: código, comentarios, commits y textos.
 ### Historia de la base de datos (importante)
 
 Antes se usaba el proyecto `pjmuykxnliqdnyrfcfzd` (ACADEMY-PROYECT), pero ahí
-vive también **EduInclusiva**, otra aplicación de la autora (tablas `profiles`,
-`jobs`, `accessibility_preferences`, `adaptation_history`, `auth_otp_codes`).
-La configuración de Auth es **una sola por proyecto**, así que al entrar con
-Google el Site URL de EduInclusiva se llevaba al usuario a la otra aplicación.
-Por eso se creó un proyecto aparte. **No vuelvas a juntarlas.**
+vive también **EduInclusiva**, otra aplicación de la autora. La configuración de
+Auth es **una sola por proyecto**, así que al entrar con Google se iba a la otra
+aplicación. Por eso se creó un proyecto aparte. **No vuelvas a juntarlas.**
 El proyecto viejo conserva sus tablas de la academia; no las toques.
 
 ## Archivos
 
-| Archivo | Qué hace |
-| --- | --- |
-| `index.html` | Pantallas de login, «sin permiso» y aplicación, con las 5 vistas y el `<template>` de filas. |
-| `app.js` | Lógica en JavaScript vainilla, por secciones: configuración, utilidades, disciplinas, estudiantes, asistencia (puente con React), dashboard, navegación, inicio, autenticación. |
-| `asistencia-react.js` | Vista Asistencia en **React 18.3.1 + htm 3.1.1 por CDN** (sin JSX; React 19 ya no tiene build para `<script>`). |
-| `asistente-ia.js` | Asistente: análisis local por reglas + preguntas a la Edge Function con respaldo local. |
-| `conexion.js` | URL y clave **anon (pública)** de Supabase. Va en el repo a propósito. |
-| `estilos.css` | Tailwind 3.4.17 **compilado**. Fuente: `estilos.entrada.css` + `tailwind.config.js`. |
-| `supabase/schema.sql` | Las 4 tablas, restricciones, índices, `es_administrador()` y RLS. Deja la base **cerrada**. |
-| `supabase/seed.sql` | Datos de prueba: 3 disciplinas, 10 estudiantes. |
-| `supabase/administrador.sql` | Autoriza una cuenta para entrar. |
-| `supabase/functions/asistente/index.ts` | Edge Function (Deno) que habla con la API de Anthropic. |
-| `docs/analisis-tecnico-y-auditoria.md` | Auditoría de una versión anterior; está desactualizada. |
+| Ruta                                                                                     | Qué hace                                                                                                                         |
+| ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `index.html`                                                                             | Pantalla de login y aplicación con las 5 vistas y el `<template>` de filas. Carga `js/main.js` como módulo.                      |
+| `js/main.js`                                                                             | Arranque: crea el cliente, conecta eventos y vistas, revisa la sesión.                                                           |
+| `js/config/`                                                                             | `conexion.js` (URL y clave **anon pública**, va en el repo a propósito) y `reglas.js` (constantes).                              |
+| `js/auth/`                                                                               | `sesion.js` (getSession, onAuthStateChange), `login.js` (correo), `google.js` (OAuth con chequeo previo de `/auth/v1/settings`). |
+| `js/datos/`                                                                              | Solo consultas a Supabase por tabla. Sin DOM.                                                                                    |
+| `js/vistas/`                                                                             | Dibujan cada vista. `asistencia.js` es **React 18.3.1 + htm 3.1.1 por CDN** (sin JSX).                                           |
+| `js/asistente/`                                                                          | `analisis.js` (cálculo puro), `hallazgos.js`, `respuestas.js` (preguntas y Edge Function), `vista.js`.                           |
+| `js/ui/`, `js/utilidades/`                                                               | Avisos, cargando, confirmación, selects; fechas, formato, texto, errores.                                                        |
+| `js/estado.js`, `js/dom.js`, `js/navegacion.js`, `js/pantallas.js`, `js/validaciones.js` | Estado compartido, referencias al DOM, cambio de vista, login/app y limpieza, validaciones.                                      |
+| `estilos.css`                                                                            | Tailwind 3.4.17 **compilado**. Fuente: `estilos.entrada.css` + `tailwind.config.js`.                                             |
+| `supabase/schema.sql`                                                                    | 3 tablas con `profesor_id`, restricciones, índices y RLS por dueño.                                                              |
+| `supabase/seed.sql`                                                                      | Datos de prueba para una cuenta (cambiar el correo).                                                                             |
+| `supabase/functions/asistente/index.ts`                                                  | Edge Function (Deno) que habla con la API de Anthropic.                                                                          |
+| `docs/analisis-tecnico-y-auditoria.md`                                                   | Auditoría de una versión anterior; está desactualizada.                                                                          |
+
+Módulos ES nativos, sin compilador: hace falta servir la carpeta (Live Server,
+`python -m http.server`), no abrir el archivo con doble clic.
 
 Versiones de CDN fijadas (supabase-js 2.117.2, React 18.3.1, htm 3.1.1). No
 subirlas sin motivo.
 
-## Base de datos
+## Base de datos y seguridad
 
-Tablas: `disciplinas`, `estudiantes`, `asistencias`, `administradores`.
+Tablas: `disciplinas`, `estudiantes`, `asistencias`. Cada una tiene
+`profesor_id uuid not null default auth.uid()`.
 
-| Rol | Puede |
-| --- | --- |
-| `anon` | **Nada.** No hay ninguna política para él y se le revocó el acceso. |
-| `authenticated` sin autorizar | **Nada.** Las políticas exigen `es_administrador()`. |
-| En `administradores` | Todo. |
+| Rol             | Puede                                                     |
+| --------------- | --------------------------------------------------------- |
+| `anon`          | **Nada.** Sin políticas y con acceso revocado.            |
+| `authenticated` | Todo, pero **solo filas con `profesor_id = auth.uid()`**. |
 
-- `es_administrador()` es `security definer` y mira si `auth.uid()` está en
-  `administradores`. La app la llama con `clienteSupabase.rpc("es_administrador")`.
-- `administradores` **no tiene políticas**: solo se edita desde el SQL Editor.
-- **Autenticar ≠ autorizar.** Es la idea central de la seguridad aquí.
+- Cualquiera con Google puede registrarse: por eso los datos se separan por dueño.
+- El frontend **nunca envía `profesor_id`**; lo pone la base.
+- Las políticas `with check` impiden usar la disciplina o el estudiante de otro profesor.
+- `disciplinas` es única por `(profesor_id, nombre)`.
+- Ya **no existen** `administradores` ni `es_administrador()` (se quitaron en la
+  migración `datos_por_profesor`, 2026-11-21; los datos previos quedaron a nombre
+  de la primera cuenta).
+- Google como proveedor se activa **a mano** en el panel de Supabase y en Google
+  Cloud (ver README, paso 2). Ninguna herramienta de esta sesión podía hacerlo.
 
 ## El asistente
 
@@ -78,13 +87,13 @@ Dos niveles, y conviene no confundirlos al explicarlo:
 1. **Análisis local** (siempre funciona): reglas y estadística en el navegador.
    Puntaje de riesgo = faltas seguidas + asistencia baja + estado de pago. Cada
    conclusión guarda la regla que la produjo. **No es un modelo entrenado.**
-2. **Modelo de lenguaje** (opcional): la Edge Function `asistente` llama a la API
-   de Anthropic (`claude-haiku-5-5`) con la clave `ANTHROPIC_API_KEY` guardada
-   como secreto en Supabase. Si no hay clave, devuelve `disponible: false` y la
-   app responde con el análisis local sin que se note.
+2. **Modelo de lenguaje** (opcional): la Edge Function `asistente` comprueba la
+   sesión con `auth.getUser()` y llama a la API de Anthropic (`claude-haiku-5-5`)
+   con la clave `ANTHROPIC_API_KEY` guardada como secreto en Supabase. Si no hay
+   clave, devuelve `disponible: false` y la app responde con el análisis local.
 
 Al modelo solo se le envían **cifras agrupadas**, nunca nombres ni teléfonos.
-Mantén esa regla si tocas `resumenParaElModelo()`.
+Mantén esa regla si tocas el resumen que se le envía.
 
 **No hay precios ni importes en la aplicación.** El estado de pago es solo
 `al_dia`, `pendiente` o `vencido`. No añadas tarifas sin que lo pidan.
@@ -94,18 +103,18 @@ Mantén esa regla si tocas `resumenParaElModelo()`.
 1. Fases 1–5: esquema, layout, estudiantes (CRUD), asistencia con upsert, dashboard.
 2. Vista Asistencia reescrita en React (CDN) para comparar con vainilla.
 3. Documento de análisis técnico y auditoría.
-4. Se quitó el login, y después se arregló la app publicada (`config.js` estaba
-   ignorado y no llegaba a Vercel) con un rediseño completo de la interfaz.
+4. Se quitó el login y después se arregló la app publicada, con rediseño.
 5. Limpieza para producción: Prettier, Tailwind compilado, markdownlint.
 6. Arquitectura con sitio público, login y asistente.
-7. **Vuelta al objetivo real** (este cambio): se eliminó todo lo público (portada,
-   servicios con tarifas, contacto y mensajes), se creó un proyecto de Supabase
-   propio para separarla de EduInclusiva, y el asistente dejó de hablar de dinero.
+7. Vuelta al objetivo real: sin parte pública, proyecto de Supabase propio,
+   asistente sin dinero.
+8. **Reorganización** (2026-11-21): `app.js` se dividió en módulos dentro de `js/`,
+   sin comentarios; registro abierto con Google y datos separados por profesor;
+   rediseño profesional de la interfaz y asistente más completo.
 
 ## Seguridad (antes de tocar nada)
 
-- La clave de `conexion.js` es la **anon/publishable**: pública por diseño. Lo que
-  protege los datos es RLS.
+- La clave de `js/config/conexion.js` es la **anon/publishable**: pública por diseño.
 - **Nunca** pongas `service_role`/`secret` en el código ni en GitHub.
 - **Nunca** pongas una clave de API de un modelo en el navegador: va en el secreto
   de la Edge Function.
@@ -117,16 +126,16 @@ Mantén esa regla si tocas `resumenParaElModelo()`.
 ## Cómo probar
 
 - Local: `python -m http.server 5500` en la raíz, o Live Server de VS Code.
-- Hace falta una cuenta autorizada (`administrador.sql`) para ver algo.
-- Lista de comprobación manual: secciones 4 y 7 del README.
+- Una cuenta nueva empieza vacía; para datos de prueba usa `seed.sql` con su correo.
 - «No se pudo conectar con Supabase»: el proyecto gratuito se pausa; restaurarlo
   en el panel de Supabase.
-- No hay pruebas automáticas en el repo (se usaron Playwright y una base simulada
-  durante el desarrollo, fuera del repositorio).
+- No hay pruebas automáticas en el repo (se usan Playwright y una base simulada
+  fuera del repositorio).
 
 ## Pendientes
 
-- Rol de profesor frente a director (hoy quien entra puede hacer todo).
+- Rol de director que vea a varios profesores.
+- Límite de uso del asistente con modelo por cuenta (hoy solo limita el tamaño).
 - Registro de pagos con importes y fechas, si lo piden.
 - `integrity` (SRI) en los `<script>` de CDN.
 - Paginación (Supabase devuelve máx. 1000 filas por consulta).
@@ -134,12 +143,13 @@ Mantén esa regla si tocas `resumenParaElModelo()`.
 
 ## Convenciones al trabajar aquí
 
-- Escribe en **español** (código, comentarios, commits, documentación), con
-  lenguaje sencillo: es un proyecto escolar y la autora lo tiene que poder explicar.
-- Mantén el estilo: JavaScript vainilla salvo la vista Asistencia; sin frameworks
-  ni pasos de compilación nuevos sin pedirlo.
+- Escribe en **español**, con lenguaje sencillo: la autora lo tiene que poder explicar.
+- **Sin comentarios en el código.** Lo que haga falta explicar va en el README.
+- Una responsabilidad por archivo: `datos/` sin DOM, `vistas/` sin consultas directas.
+- JavaScript vainilla salvo la vista Asistencia; sin frameworks ni pasos de
+  compilación nuevos sin pedirlo.
 - Tras cambiar clases de Tailwind, recompila `estilos.css` (`npm run css`) y súbelo.
 - Formatea con Prettier, pero **no** le pases `package-lock.json` ni los `.json` de
-  configuración: solo les cambia los finales de línea y ensucia el historial.
+  configuración.
 - Mensajes de commit descriptivos en español, como los del historial.
 - Si cambias comportamiento o seguridad, actualiza también `README.md`.
