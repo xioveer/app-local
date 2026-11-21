@@ -14,8 +14,8 @@ cada profesor lleva sus estudiantes, el estado de sus pagos y la asistencia diar
 con sitio público (portada, catálogo de tarifas y formulario de contacto) y se
 eliminó a petición de la autora. No vuelvas a añadir esa parte.
 
-Una sola página (`index.html`) con login y cinco vistas: **Dashboard**,
-**Estudiantes**, **Asistencia**, **Disciplinas** y **Asistente**.
+Una sola página (`index.html`) con login y seis vistas: **Dashboard**,
+**Estudiantes**, **Asistencia**, **Historial**, **Disciplinas** y **Asistente**.
 
 Todo en español: código, commits y textos. **El código no lleva comentarios**
 (lo pidió la autora): se explica con buenos nombres y con el README.
@@ -39,13 +39,15 @@ El proyecto viejo conserva sus tablas de la academia; no las toques.
 
 | Ruta                                                                                     | Qué hace                                                                                                                         |
 | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `index.html`                                                                             | Pantalla de login y aplicación con las 5 vistas y el `<template>` de filas. Carga `js/main.js` como módulo.                      |
+| `index.html`                                                                             | Pantalla de login y aplicación con las 6 vistas y los `<template>` de filas y días. Carga `js/main.js` como módulo.              |
 | `js/main.js`                                                                             | Arranque: crea el cliente, conecta eventos y vistas, revisa la sesión.                                                           |
 | `js/config/`                                                                             | `conexion.js` (URL y clave **anon pública**, va en el repo a propósito) y `reglas.js` (constantes).                              |
 | `js/auth/`                                                                               | `sesion.js` (getSession, onAuthStateChange), `login.js` (correo), `google.js` (OAuth con chequeo previo de `/auth/v1/settings`). |
 | `js/datos/`                                                                              | Solo consultas a Supabase por tabla. Sin DOM.                                                                                    |
 | `js/vistas/`                                                                             | Dibujan cada vista. `asistencia.js` es **React 18.3.1 + htm 3.1.1 por CDN** (sin JSX).                                           |
 | `js/asistente/`                                                                          | `analisis.js` (cálculo puro), `hallazgos.js`, `respuestas.js` (preguntas y Edge Function), `vista.js`.                           |
+| `js/historial/`                                                                          | `dias.js` (agrupa por día, valida el rango; puro), `hojas.js` (filas de Excel; puro), `vista.js`. Lee con paginación de 1000.    |
+| `js/servicios/excel.js`                                                                  | Carga SheetJS 0.18.5 por CDN **solo al descargar**, con `integrity` (sha384), y escribe el `.xlsx`.                              |
 | `js/ui/`, `js/utilidades/`                                                               | Avisos, cargando, confirmación, selects; fechas, formato, texto, errores.                                                        |
 | `js/estado.js`, `js/dom.js`, `js/navegacion.js`, `js/pantallas.js`, `js/validaciones.js` | Estado compartido, referencias al DOM, cambio de vista, login/app y limpieza, validaciones.                                      |
 | `estilos.css`                                                                            | Tailwind 3.4.17 **compilado**. Fuente: `estilos.entrada.css` + `tailwind.config.js`.                                             |
@@ -57,8 +59,10 @@ El proyecto viejo conserva sus tablas de la academia; no las toques.
 Módulos ES nativos, sin compilador: hace falta servir la carpeta (Live Server,
 `python -m http.server`), no abrir el archivo con doble clic.
 
-Versiones de CDN fijadas (supabase-js 2.117.2, React 18.3.1, htm 3.1.1). No
-subirlas sin motivo.
+Versiones de CDN fijadas (supabase-js 2.117.2, React 18.3.1, htm 3.1.1,
+SheetJS/xlsx 0.18.5). No subirlas sin motivo; si cambias SheetJS, recalcula su
+`integrity`. Esa versión tiene fallos conocidos al **leer** archivos; aquí solo
+se escriben, así que no aplican. El Excel no lleva teléfonos de acudientes.
 
 ## Base de datos y seguridad
 
@@ -111,6 +115,8 @@ Mantén esa regla si tocas el resumen que se le envía.
 8. **Reorganización** (2026-11-21): `app.js` se dividió en módulos dentro de `js/`,
    sin comentarios; registro abierto con Google y datos separados por profesor;
    rediseño profesional de la interfaz y asistente más completo.
+9. **Historial** (2026-11-21): vista con un apartado por día (vinieron / faltaron),
+   filtros por fechas y disciplina, y descarga en Excel de un día o del rango.
 
 ## Seguridad (antes de tocar nada)
 
@@ -137,7 +143,7 @@ Mantén esa regla si tocas el resumen que se le envía.
 - Rol de director que vea a varios profesores.
 - Límite de uso del asistente con modelo por cuenta (hoy solo limita el tamaño).
 - Registro de pagos con importes y fechas, si lo piden.
-- `integrity` (SRI) en los `<script>` de CDN.
+- `integrity` (SRI) en los `<script>` fijos de CDN (SheetJS ya lo tiene).
 - Paginación (Supabase devuelve máx. 1000 filas por consulta).
 - La auditoría de `docs/` quedó desactualizada.
 

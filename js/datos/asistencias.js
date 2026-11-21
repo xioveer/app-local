@@ -16,6 +16,27 @@ export async function leerAsistenciasDesde(fecha) {
   );
 }
 
+const FILAS_POR_PAGINA = 1000;
+
+export async function leerAsistenciasEntre(desde, hasta) {
+  const todas = [];
+  for (let inicio = 0; ; inicio += FILAS_POR_PAGINA) {
+    const pagina = datosDeLaRespuesta(
+      await tablaAsistencias()
+        .select("id, estudiante_id, fecha, asistio")
+        .gte("fecha", desde)
+        .lte("fecha", hasta)
+        .order("fecha", { ascending: false })
+        .order("id", { ascending: true })
+        .range(inicio, inicio + FILAS_POR_PAGINA - 1)
+    );
+    todas.push(...pagina);
+    if (pagina.length < FILAS_POR_PAGINA) {
+      return todas;
+    }
+  }
+}
+
 export async function guardarAsistencias(registros) {
   datosDeLaRespuesta(await tablaAsistencias().upsert(registros, { onConflict: "estudiante_id,fecha" }));
 }

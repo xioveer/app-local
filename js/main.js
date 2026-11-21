@@ -3,6 +3,7 @@ import { sacarErrorDeLaDireccion } from "./auth/google.js";
 import { conectarEventosDelLogin, mostrarAvisoDeGoogle } from "./auth/login.js";
 import { vigilarCambiosDeSesion } from "./auth/sesion.js";
 import { elementos } from "./dom.js";
+import { abrirVistaHistorial, conectarEventosDelHistorial } from "./historial/vista.js";
 import { conectarNavegacion, registrarVistas } from "./navegacion.js";
 import {
   cerrarSesion,
@@ -25,6 +26,7 @@ function conectarEventos() {
   conectarEventosDelDashboard();
   conectarEventosDeEstudiantes();
   conectarEventosDeDisciplinas();
+  conectarEventosDelHistorial();
   conectarEventosDelAsistente();
   elementos.botonCerrarSesion.addEventListener("click", cerrarSesion);
 }
@@ -48,6 +50,7 @@ async function iniciar() {
     dashboard: cargarDashboard,
     estudiantes: abrirVistaEstudiantes,
     asistencia: abrirVistaAsistencia,
+    historial: abrirVistaHistorial,
     disciplinas: cargarDisciplinas,
     asistente: abrirVistaAsistente,
   });

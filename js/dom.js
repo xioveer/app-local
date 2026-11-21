@@ -49,6 +49,20 @@ export const elementos = {
 
   raizAsistencia: porId("raiz-asistencia"),
 
+  formularioHistorial: porId("formulario-historial"),
+  historialDesde: porId("historial-desde"),
+  historialHasta: porId("historial-hasta"),
+  historialDisciplina: porId("historial-disciplina"),
+  botonDescargarHistorial: porId("boton-descargar-historial"),
+  resumenHistorial: porId("resumen-historial"),
+  historialTotalDias: porId("historial-total-dias"),
+  historialPorcentaje: porId("historial-porcentaje"),
+  historialPresentes: porId("historial-presentes"),
+  historialAusentes: porId("historial-ausentes"),
+  mensajeSinHistorial: porId("mensaje-sin-historial"),
+  listaHistorial: porId("lista-historial"),
+  plantillaDiaHistorial: porId("plantilla-dia-historial"),
+
   botonActualizarDashboard: porId("boton-actualizar-dashboard"),
   textoActualizacionDashboard: porId("texto-actualizacion-dashboard"),
   dashActivos: porId("dash-activos"),

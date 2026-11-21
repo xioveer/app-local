@@ -2,6 +2,7 @@ import { cerrarVistaDelAsistente } from "./asistente/vista.js";
 import { leerSesionGuardada, salirDeSupabase } from "./auth/sesion.js";
 import { elementos } from "./dom.js";
 import { estado, reiniciarEstado } from "./estado.js";
+import { limpiarVistaDelHistorial } from "./historial/vista.js";
 import { mostrarVista } from "./navegacion.js";
 import { mostrarAviso } from "./ui/avisos.js";
 import { mostrarCargando, ocultarCargando } from "./ui/cargando.js";
@@ -26,6 +27,7 @@ function limpiarDatosDeLaSesion() {
   limpiarVistaDeDisciplinas();
   limpiarVistaDeEstudiantes();
   cerrarVistaAsistencia();
+  limpiarVistaDelHistorial();
   cerrarVistaDelAsistente();
 }
 

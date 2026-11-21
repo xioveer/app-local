@@ -278,6 +278,21 @@
               </svg>
               Asistencia
             </button>
+            <button type="button" data-ir-a="historial" class="pestana">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+                <path d="M3 3v5h5M12 7v5l3 2" />
+              </svg>
+              Historial
+            </button>
             <button type="button" data-ir-a="disciplinas" class="pestana">
               <svg
                 viewBox="0 0 24 24"
@@ -716,6 +731,85 @@
           <div id="raiz-asistencia"></div>
         </section>
 
+        <section data-vista="historial" class="hidden">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 class="titulo-vista">Historial</h2>
+              <p class="subtitulo-vista">Mira quién vino cada día y descárgalo en Excel.</p>
+            </div>
+            <button id="boton-descargar-historial" type="button" class="boton boton-principal shrink-0">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="h-4 w-4"
+                aria-hidden="true"
+              >
+                <path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+              </svg>
+              Descargar todo en Excel
+            </button>
+          </div>
+
+          <form
+            id="formulario-historial"
+            novalidate
+            class="tarjeta mt-6 grid gap-3 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-[1fr_1fr_1.4fr_auto] lg:items-end"
+          >
+            <div>
+              <label for="historial-desde" class="etiqueta">Desde</label>
+              <input id="historial-desde" type="date" class="campo" />
+            </div>
+            <div>
+              <label for="historial-hasta" class="etiqueta">Hasta</label>
+              <input id="historial-hasta" type="date" class="campo" />
+            </div>
+            <div class="sm:col-span-2 lg:col-span-1">
+              <label for="historial-disciplina" class="etiqueta">Disciplina</label>
+              <select id="historial-disciplina" class="campo"></select>
+            </div>
+            <button type="submit" class="boton boton-secundario sm:col-span-2 lg:col-span-1">
+              Ver asistencia
+            </button>
+          </form>
+
+          <div id="resumen-historial" class="mt-6 grid hidden grid-cols-2 gap-3 sm:grid-cols-4">
+            <div class="tarjeta p-4">
+              <p class="rotulo">Días con registro</p>
+              <p
+                id="historial-total-dias"
+                class="mt-1 text-2xl font-semibold tabular-nums text-slate-900"
+              ></p>
+            </div>
+            <div class="tarjeta p-4">
+              <p class="rotulo">Asistencia</p>
+              <p
+                id="historial-porcentaje"
+                class="mt-1 text-2xl font-semibold tabular-nums text-slate-900"
+              ></p>
+            </div>
+            <div class="tarjeta p-4">
+              <p class="rotulo">Presentes</p>
+              <p
+                id="historial-presentes"
+                class="mt-1 text-2xl font-semibold tabular-nums text-emerald-700"
+              ></p>
+            </div>
+            <div class="tarjeta p-4">
+              <p class="rotulo">Ausentes</p>
+              <p id="historial-ausentes" class="mt-1 text-2xl font-semibold tabular-nums text-rose-700"></p>
+            </div>
+          </div>
+
+          <p id="mensaje-sin-historial" class="vacio mt-6 hidden">
+            No hay asistencia registrada entre esas fechas. Tómala en la vista Asistencia.
+          </p>
+          <div id="lista-historial" class="mt-4 space-y-3"></div>
+        </section>
+
         <section data-vista="disciplinas" class="hidden">
           <h2 class="titulo-vista">Disciplinas</h2>
           <p class="subtitulo-vista">
@@ -824,6 +918,70 @@
         </section>
       </main>
     </div>
+
+    <template id="plantilla-dia-historial">
+      <details class="tarjeta group overflow-hidden">
+        <summary
+          class="flex cursor-pointer list-none items-center gap-3 px-4 py-3.5 hover:bg-slate-50/70 sm:px-5 [&::-webkit-details-marker]:hidden"
+        >
+          <div class="min-w-0 flex-1">
+            <p data-texto="fecha" class="font-medium text-slate-900 first-letter:uppercase"></p>
+            <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <span
+                data-texto="presentes"
+                class="chip chip-punto bg-emerald-50 text-emerald-700 ring-emerald-600/20"
+              ></span>
+              <span
+                data-texto="ausentes"
+                class="chip chip-punto bg-rose-50 text-rose-700 ring-rose-600/20"
+              ></span>
+            </div>
+          </div>
+          <span data-texto="porcentaje" class="text-lg font-semibold tabular-nums text-slate-900"></span>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180 motion-reduce:transition-none"
+            aria-hidden="true"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </summary>
+        <div class="border-t border-borde px-4 py-4 sm:px-5">
+          <div class="grid gap-5 sm:grid-cols-2">
+            <div>
+              <h3 data-texto="titulo-presentes" class="rotulo"></h3>
+              <ul data-lista="presentes" class="mt-2 divide-y divide-slate-100"></ul>
+            </div>
+            <div>
+              <h3 data-texto="titulo-ausentes" class="rotulo"></h3>
+              <ul data-lista="ausentes" class="mt-2 divide-y divide-slate-100"></ul>
+            </div>
+          </div>
+          <div class="mt-4 flex justify-end border-t border-slate-100 pt-4">
+            <button type="button" data-accion="descargar-dia" class="boton boton-chico boton-secundario">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="h-3.5 w-3.5"
+                aria-hidden="true"
+              >
+                <path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+              </svg>
+              Descargar este día en Excel
+            </button>
+          </div>
+        </div>
+      </details>
+    </template>
 
     <template id="plantilla-fila-estudiante">
       <tr

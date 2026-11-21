@@ -27,15 +27,16 @@ Es un proyecto escolar hecho con herramientas simples: **HTML, Tailwind CSS y Ja
 
 ## 1. Qué hace
 
-Al abrir la página aparece el inicio de sesión. Cualquier profesor puede **registrarse y entrar con su cuenta de Google** (o con correo y contraseña), y cada uno ve **solo sus propios** estudiantes, disciplinas y asistencias. Dentro hay cinco vistas:
+Al abrir la página aparece el inicio de sesión. Cualquier profesor puede **registrarse y entrar con su cuenta de Google** (o con correo y contraseña), y cada uno ve **solo sus propios** estudiantes, disciplinas y asistencias. Dentro hay seis vistas:
 
-| Vista           | Qué permite hacer                                                                                                      |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Dashboard**   | Cómo va la asistencia de hoy, cuántos estudiantes activos hay y cómo están los pagos                                   |
-| **Estudiantes** | Crear, editar y desactivar. Buscar por nombre y filtrar por disciplina. El acudiente es obligatorio para menores de 18 |
-| **Asistencia**  | Elegir la fecha, marcar quién vino y guardar. Si ya había registro ese día, se actualiza en vez de duplicarse          |
-| **Disciplinas** | Las actividades de la academia (fútbol, guitarra, danza…). Cada estudiante pertenece a una                             |
-| **Asistente**   | Señala quién podría estar retirándose y a quién hay que cobrarle, y responde preguntas sobre tus datos                 |
+| Vista           | Qué permite hacer                                                                                                                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Dashboard**   | Cómo va la asistencia de hoy, cuántos estudiantes activos hay y cómo están los pagos                                                                                                             |
+| **Estudiantes** | Crear, editar y desactivar. Buscar por nombre y filtrar por disciplina. El acudiente es obligatorio para menores de 18                                                                           |
+| **Asistencia**  | Elegir la fecha, marcar quién vino y guardar. Si ya había registro ese día, se actualiza en vez de duplicarse                                                                                    |
+| **Historial**   | Cada día con asistencia en su propio apartado: quiénes vinieron y quiénes faltaron. Filtra por fechas y disciplina, y descarga en Excel un día o todo el rango (una hoja por día más un resumen) |
+| **Disciplinas** | Las actividades de la academia (fútbol, guitarra, danza…). Cada estudiante pertenece a una                                                                                                       |
+| **Asistente**   | Señala quién podría estar retirándose y a quién hay que cobrarle, y responde preguntas sobre tus datos                                                                                           |
 
 Los estudiantes no se borran: se **desactivan**, para no perder su historial de asistencia.
 
@@ -64,19 +65,20 @@ Lo importante: **el navegador no decide la seguridad**. Aunque alguien abra el c
 
 ## 3. Tecnologías y archivos
 
-| Tecnología                        | Para qué                                           | Cómo se carga                               |
-| --------------------------------- | -------------------------------------------------- | ------------------------------------------- |
-| HTML5                             | La página y sus cinco vistas                       | `index.html`                                |
-| Tailwind CSS 3.4.17               | Estilos y diseño responsive                        | Compilado en `estilos.css`                  |
-| JavaScript (vainilla, módulos ES) | Casi toda la lógica, separada por responsabilidad  | Carpeta `js/`, sin compilador               |
-| React 18.3.1 + htm 3.1.1          | La vista de Asistencia                             | CDN (jsDelivr), sin compilador              |
-| Supabase                          | Base de datos, inicio de sesión y reglas de acceso | SDK `@supabase/supabase-js` 2.117.2 por CDN |
-| Deno (Edge Function)              | Guardar la clave de la IA en el servidor           | `supabase/functions/asistente/`             |
-| Vercel                            | Publica la página                                  | Automático en cada push                     |
+| Tecnología                        | Para qué                                           | Cómo se carga                                    |
+| --------------------------------- | -------------------------------------------------- | ------------------------------------------------ |
+| HTML5                             | La página y sus seis vistas                        | `index.html`                                     |
+| Tailwind CSS 3.4.17               | Estilos y diseño responsive                        | Compilado en `estilos.css`                       |
+| JavaScript (vainilla, módulos ES) | Casi toda la lógica, separada por responsabilidad  | Carpeta `js/`, sin compilador                    |
+| React 18.3.1 + htm 3.1.1          | La vista de Asistencia                             | CDN (jsDelivr), sin compilador                   |
+| Supabase                          | Base de datos, inicio de sesión y reglas de acceso | SDK `@supabase/supabase-js` 2.117.2 por CDN      |
+| SheetJS (xlsx) 0.18.5             | Crear los archivos de Excel del Historial          | CDN, solo al pulsar «Descargar», con `integrity` |
+| Deno (Edge Function)              | Guardar la clave de la IA en el servidor           | `supabase/functions/asistente/`                  |
+| Vercel                            | Publica la página                                  | Automático en cada push                          |
 
 ```
 app-local/
-├── index.html              La página: login y las 5 vistas
+├── index.html              La página: login y las 6 vistas
 ├── js/
 │   ├── main.js             Arranque: conecta todo al cargar la página
 │   ├── estado.js, dom.js   Datos en memoria y referencias a la página
@@ -84,10 +86,11 @@ app-local/
 │   ├── pantallas.js        Mostrar login o aplicación y limpiar al salir
 │   ├── validaciones.js     Reglas de los formularios
 │   ├── config/             conexion.js (dirección y clave PÚBLICA de Supabase), reglas.js
-│   ├── servicios/          supabase.js: crea el cliente
+│   ├── servicios/          supabase.js (crea el cliente), excel.js (carga SheetJS y descarga el archivo)
 │   ├── auth/               sesion.js, login.js (correo), google.js
 │   ├── datos/              Consultas por tabla: disciplinas, estudiantes, asistencias
 │   ├── vistas/             dashboard, estudiantes/, asistencia (React), disciplinas
+│   ├── historial/          dias.js (agrupa por día), hojas.js (arma las hojas de Excel), vista.js
 │   ├── asistente/          analisis.js, hallazgos.js, respuestas.js, vista.js
 │   ├── ui/                 avisos, cargando, confirmación, selects
 │   └── utilidades/         fechas, formato, texto, errores
@@ -224,7 +227,8 @@ Después de publicar, agrega la dirección en Supabase → **Authentication → 
 3. **Validación en dos capas.** El formulario avisa rápido y en español; la base vuelve a revisar con `CHECK` y no se puede saltar.
 4. **Borrado lógico.** Un estudiante que se retira se desactiva, no se borra, para conservar su historial de asistencia.
 5. **La clave de la IA no está en el navegador.** Vive en una Edge Function. Si estuviera en el código, cualquiera podría copiarla y gastarla.
-6. **React solo donde ayuda.** En Asistencia, mover un interruptor cambia el texto, el color, el resumen y el aviso de cambios sin guardar; React los mantiene de acuerdo solo. En el resto, JavaScript vainilla es más simple.
+6. **El Excel se arma en el navegador.** El Historial no le pide nada nuevo al servidor: agrupa las asistencias por día y SheetJS crea el `.xlsx` en la computadora del profesor. La librería solo se descarga al pulsar el botón, y con `integrity` el navegador comprueba que el archivo del CDN no fue alterado. El Excel no incluye teléfonos de acudientes.
+7. **React solo donde ayuda.** En Asistencia, mover un interruptor cambia el texto, el color, el resumen y el aviso de cambios sin guardar; React los mantiene de acuerdo solo. En el resto, JavaScript vainilla es más simple.
 
 ### Preguntas que pueden hacer
 
