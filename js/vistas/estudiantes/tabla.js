@@ -7,11 +7,11 @@ import { describirError } from "../../utilidades/errores.js";
 import { normalizarTexto, obtenerIniciales } from "../../utilidades/texto.js";
 
 const ESTILOS_DE_PAGO = {
-  al_dia: { texto: "Al día", clases: "bg-emerald-100 text-emerald-800" },
-  pendiente: { texto: "Pendiente", clases: "bg-orange-100 text-orange-800" },
-  vencido: { texto: "Vencido", clases: "bg-rose-100 text-rose-800" },
+  al_dia: { texto: "Al día", clases: "bg-emerald-50 text-emerald-700 ring-emerald-600/20" },
+  pendiente: { texto: "Pendiente", clases: "bg-amber-50 text-amber-800 ring-amber-600/25" },
+  vencido: { texto: "Vencido", clases: "bg-rose-50 text-rose-700 ring-rose-600/20" },
 };
-const CLASES_DE_PAGO_INACTIVO = "bg-slate-200 text-slate-500";
+const CLASES_DE_PAGO_INACTIVO = "bg-slate-100 text-slate-500 ring-slate-500/15";
 
 export async function cargarEstudiantes() {
   mostrarCargando("Cargando estudiantes...");

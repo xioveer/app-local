@@ -3,47 +3,54 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#F6F7F9" />
     <title>Panel · Academia GA</title>
 
     <link
       rel="icon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230C1F4A%22/><text x=%2250%22 y=%2268%22 font-family=%22Arial,sans-serif%22 font-size=%2248%22 font-weight=%22bold%22 text-anchor=%22middle%22 fill=%22%23FFC629%22>GA</text></svg>"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2224%22 fill=%22%234F46E5%22/><text x=%2250%22 y=%2265%22 font-family=%22Arial,sans-serif%22 font-size=%2242%22 font-weight=%22bold%22 text-anchor=%22middle%22 fill=%22white%22>GA</text></svg>"
     />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
     />
 
     <link rel="stylesheet" href="estilos.css" />
   </head>
 
-  <body class="bg-papel text-slate-800 antialiased">
+  <body class="bg-papel font-sans text-slate-700 antialiased">
     <div
       id="contenedor-avisos"
       aria-live="polite"
-      class="pointer-events-none fixed inset-x-4 top-4 z-50 space-y-2 sm:left-auto sm:right-4 sm:w-96"
+      class="pointer-events-none fixed inset-x-4 top-4 z-50 flex flex-col gap-2 sm:left-auto sm:right-6 sm:top-6 sm:w-96"
     ></div>
 
     <div
       id="indicador-cargando"
       role="status"
       aria-live="polite"
-      class="fixed inset-0 z-40 hidden bg-papel/70 backdrop-blur-sm"
+      class="fixed inset-0 z-40 hidden bg-white/40 backdrop-blur-[1px]"
     >
-      <div class="flex h-full items-center justify-center">
-        <div class="tarjeta flex items-center gap-3 px-5 py-3 shadow-lg">
+      <div class="flex h-full items-center justify-center px-4">
+        <div
+          class="flex items-center gap-3 rounded-full border border-borde bg-white py-2.5 pl-3.5 pr-5 shadow-flotante motion-safe:animate-desvanecer"
+        >
           <svg
-            class="h-5 w-5 animate-spin text-tinta"
+            class="h-4 w-4 animate-spin text-marca-600 motion-reduce:animate-none"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
             aria-hidden="true"
           >
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+            <path
+              class="opacity-90"
+              fill="currentColor"
+              d="M12 2a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7V2z"
+            ></path>
           </svg>
           <span id="texto-cargando" class="text-sm font-medium text-slate-700">Cargando...</span>
         </div>
@@ -52,12 +59,35 @@
 
     <dialog
       id="dialogo-confirmacion"
-      class="m-auto w-[calc(100%-2rem)] max-w-sm rounded-2xl bg-white p-0 text-slate-800 shadow-xl backdrop:bg-tinta/60"
+      class="m-auto w-[calc(100%-2rem)] max-w-md overflow-hidden rounded-xl border border-borde bg-white p-0 text-slate-700 shadow-flotante motion-safe:open:animate-aparecer"
     >
-      <form method="dialog" class="p-6">
-        <h3 id="titulo-confirmacion" class="titulo-tarjeta"></h3>
-        <p id="mensaje-confirmacion" class="mt-2 text-sm text-slate-600"></p>
-        <div class="mt-6 flex justify-end gap-2">
+      <form method="dialog">
+        <div class="flex gap-4 p-5 sm:p-6">
+          <div
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600 ring-1 ring-inset ring-rose-100"
+            aria-hidden="true"
+          >
+            <svg
+              class="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+              />
+              <path d="M12 9v4M12 17h.01" />
+            </svg>
+          </div>
+          <div class="min-w-0 pt-0.5">
+            <h3 id="titulo-confirmacion" class="titulo-tarjeta"></h3>
+            <p id="mensaje-confirmacion" class="mt-1.5 text-sm leading-6 text-slate-600"></p>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 border-t border-borde bg-slate-50 px-5 py-3.5 sm:px-6">
           <button type="submit" value="cancelar" autofocus class="boton boton-secundario">Cancelar</button>
           <button id="boton-confirmar" type="submit" value="confirmar" class="boton boton-peligro">
             Confirmar
@@ -67,233 +97,408 @@
     </dialog>
 
     <section id="pantalla-problema" class="hidden">
-      <div class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-10">
-        <div class="tarjeta p-6">
-          <div
-            class="flex h-11 w-11 items-center justify-center rounded-xl bg-sol font-titulo text-xl font-bold text-tinta"
-            aria-hidden="true"
-          >
-            GA
-          </div>
-          <h1 class="titulo-tarjeta mt-4">La aplicación no pudo empezar</h1>
-          <p id="texto-problema" role="alert" class="mt-2 text-sm text-slate-600"></p>
-          <a href="./" class="boton boton-principal mt-6">Volver a intentar</a>
+      <div class="relative isolate flex min-h-screen flex-col items-center justify-center px-4 py-10">
+        <div class="fondo-login absolute inset-0 -z-10" aria-hidden="true"></div>
+        <div class="tarjeta w-full max-w-sm p-6 shadow-flotante sm:p-8">
+          <div class="marca-logo h-10 w-10 text-sm" aria-hidden="true">GA</div>
+          <h1 class="mt-5 text-lg font-semibold tracking-tight text-slate-900">
+            La aplicación no pudo empezar
+          </h1>
+          <p id="texto-problema" role="alert" class="mt-2 text-sm leading-6 text-slate-600"></p>
+          <a href="./" class="boton boton-principal mt-6 w-full">Volver a intentar</a>
         </div>
       </div>
     </section>
 
     <section id="pantalla-login" class="hidden">
-      <div class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-10">
-        <div class="tarjeta p-6 sm:p-8">
-          <div
-            class="flex h-11 w-11 items-center justify-center rounded-xl bg-sol font-titulo text-xl font-bold text-tinta"
-            aria-hidden="true"
-          >
-            GA
-          </div>
-          <h1 class="titulo-tarjeta mt-4">Panel de la academia</h1>
-          <p class="mt-2 text-sm text-slate-600">
-            Entra con tu cuenta de Google para llevar tus estudiantes, sus pagos y la asistencia. Si es la
-            primera vez, tu cuenta se crea sola.
-          </p>
+      <div class="relative isolate flex min-h-screen flex-col items-center justify-center px-4 py-12">
+        <div class="fondo-login absolute inset-0 -z-10" aria-hidden="true"></div>
 
-          <button id="boton-google" type="button" class="boton boton-principal mt-6 w-full gap-3">
-            <span class="flex h-6 w-6 items-center justify-center rounded-full bg-white" aria-hidden="true">
-              <svg class="h-4 w-4" viewBox="0 0 48 48">
+        <div class="w-full max-w-sm">
+          <div class="flex flex-col items-center text-center">
+            <div class="marca-logo h-11 w-11 text-sm" aria-hidden="true">GA</div>
+            <h1 class="mt-6 text-2xl font-semibold tracking-tight text-slate-900">Panel de la academia</h1>
+            <p class="mt-2 text-sm leading-6 text-slate-500">
+              Entra con tu cuenta de Google para llevar tus estudiantes, sus pagos y la asistencia. Si es la
+              primera vez, tu cuenta se crea sola.
+            </p>
+          </div>
+
+          <div class="tarjeta mt-8 p-6 shadow-flotante sm:p-7">
+            <button id="boton-google" type="button" class="boton boton-principal boton-google w-full">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 48 48" aria-hidden="true">
                 <path
-                  fill="#FFC107"
-                  d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"
+                  fill="#EA4335"
+                  d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
                 />
                 <path
-                  fill="#FF3D00"
-                  d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"
+                  fill="#4285F4"
+                  d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
                 />
                 <path
-                  fill="#4CAF50"
-                  d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.6 39.6 16.2 44 24 44z"
+                  fill="#FBBC05"
+                  d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
                 />
                 <path
-                  fill="#1976D2"
-                  d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C39.1 36.2 44 31 44 24c0-1.3-.1-2.4-.4-3.5z"
+                  fill="#34A853"
+                  d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
                 />
               </svg>
-            </span>
-            Entrar con Google
-          </button>
-          <p id="aviso-google" role="alert" class="error-de-campo hidden"></p>
-
-          <div class="my-5 flex items-center gap-3">
-            <span class="h-px flex-1 bg-slate-200"></span>
-            <span class="text-xs text-slate-500">o con tu correo y contraseña</span>
-            <span class="h-px flex-1 bg-slate-200"></span>
-          </div>
-
-          <form id="formulario-login" novalidate class="space-y-4">
-            <div>
-              <label for="login-correo" class="etiqueta">Correo</label>
-              <input id="login-correo" name="correo" type="email" autocomplete="username" class="campo" />
-            </div>
-            <div>
-              <label for="login-contrasena" class="etiqueta">Contraseña</label>
-              <input
-                id="login-contrasena"
-                name="contrasena"
-                type="password"
-                autocomplete="current-password"
-                class="campo"
-              />
-            </div>
-            <button id="boton-login" type="submit" class="boton boton-secundario w-full">
-              Iniciar sesión
+              Entrar con Google
             </button>
-          </form>
+            <p
+              id="aviso-google"
+              role="alert"
+              class="mt-3 hidden rounded-lg bg-rose-50 px-3 py-2.5 text-xs font-medium leading-5 text-rose-700 ring-1 ring-inset ring-rose-200"
+            ></p>
+
+            <div class="my-6 flex items-center gap-3">
+              <span class="h-px flex-1 bg-borde"></span>
+              <span class="text-xs text-slate-500">o con tu correo y contraseña</span>
+              <span class="h-px flex-1 bg-borde"></span>
+            </div>
+
+            <form id="formulario-login" novalidate class="space-y-4">
+              <div>
+                <label for="login-correo" class="etiqueta">Correo</label>
+                <input id="login-correo" name="correo" type="email" autocomplete="username" class="campo" />
+              </div>
+              <div>
+                <label for="login-contrasena" class="etiqueta">Contraseña</label>
+                <input
+                  id="login-contrasena"
+                  name="contrasena"
+                  type="password"
+                  autocomplete="current-password"
+                  class="campo"
+                />
+              </div>
+              <button id="boton-login" type="submit" class="boton boton-secundario w-full">
+                Iniciar sesión
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </section>
 
-    <div id="app-principal" class="hidden min-h-screen">
-      <header class="bg-tinta text-white">
-        <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 pb-4 pt-5">
-          <div class="flex min-w-0 items-center gap-3">
-            <div
-              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sol font-titulo text-xl font-bold text-tinta"
-              aria-hidden="true"
-            >
-              GA
-            </div>
+    <div id="app-principal" class="hidden min-h-screen lg:pl-[17rem]">
+      <aside
+        class="border-b border-borde bg-white lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:w-[17rem] lg:border-b-0 lg:border-r"
+      >
+        <div
+          class="flex flex-wrap items-center gap-x-3 px-4 pt-3 sm:px-6 lg:h-full lg:flex-col lg:flex-nowrap lg:items-stretch lg:px-3 lg:py-4"
+        >
+          <div class="order-1 flex min-w-0 flex-1 items-center gap-3 py-1 lg:flex-none lg:px-2.5">
+            <div class="marca-logo h-8 w-8 text-xs" aria-hidden="true">GA</div>
             <div class="min-w-0">
-              <p class="truncate font-titulo text-2xl font-bold leading-tight">Gestor de Academia</p>
-              <p class="truncate text-sm text-blue-200">Estudiantes, pagos y asistencia</p>
+              <p class="truncate text-sm font-semibold tracking-tight text-slate-900">Gestor de Academia</p>
+              <p class="truncate text-xs text-slate-500">Estudiantes, pagos y asistencia</p>
             </div>
           </div>
-          <div class="flex shrink-0 items-center gap-3">
-            <div class="hidden text-right sm:block">
-              <p id="fecha-encabezado" class="text-sm text-blue-200"></p>
-              <p id="correo-usuario" class="truncate text-xs text-blue-300"></p>
+
+          <div
+            class="order-2 flex shrink-0 items-center gap-3 lg:order-3 lg:mt-auto lg:flex-col lg:items-stretch lg:border-t lg:border-borde lg:pt-4"
+          >
+            <div class="hidden min-w-0 text-right sm:block lg:px-2.5 lg:text-left">
+              <p id="correo-usuario" class="truncate text-sm font-medium text-slate-900"></p>
+              <p id="fecha-encabezado" class="truncate text-xs text-slate-500 first-letter:uppercase"></p>
             </div>
             <button
               id="boton-cerrar-sesion"
               type="button"
-              class="boton boton-chico border border-white/30 text-white hover:bg-white/10"
+              class="boton boton-secundario boton-chico lg:h-9 lg:justify-start lg:border-transparent lg:bg-transparent lg:px-2.5 lg:text-sm lg:text-slate-600 lg:shadow-none lg:hover:bg-slate-100"
             >
+              <svg
+                class="hidden lg:block"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <path d="m16 17 5-5-5-5M21 12H9" />
+              </svg>
               Salir
             </button>
           </div>
+
+          <nav
+            aria-label="Secciones"
+            class="order-3 -mb-px mt-2 flex w-full gap-5 overflow-x-auto [scrollbar-width:none] lg:order-2 lg:mb-0 lg:mt-6 lg:flex-col lg:gap-0.5 lg:overflow-visible [&::-webkit-scrollbar]:hidden"
+          >
+            <button type="button" data-ir-a="dashboard" class="pestana">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="3" width="7" height="9" rx="1.5" />
+                <rect x="14" y="3" width="7" height="5" rx="1.5" />
+                <rect x="14" y="12" width="7" height="9" rx="1.5" />
+                <rect x="3" y="16" width="7" height="5" rx="1.5" />
+              </svg>
+              Dashboard
+            </button>
+            <button type="button" data-ir-a="estudiantes" class="pestana">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              Estudiantes
+            </button>
+            <button type="button" data-ir-a="asistencia" class="pestana">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4" />
+              </svg>
+              Asistencia
+            </button>
+            <button type="button" data-ir-a="disciplinas" class="pestana">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m12 2 9 5-9 5-9-5 9-5z" />
+                <path d="m3 12 9 5 9-5M3 17l9 5 9-5" />
+              </svg>
+              Disciplinas
+            </button>
+            <button type="button" data-ir-a="asistente" class="pestana">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 3l1.9 5.8 5.8 1.9-5.8 1.9L12 18.4l-1.9-5.8-5.8-1.9 5.8-1.9L12 3z" />
+                <path d="M19 3v4M17 5h4M5 17v4M3 19h4" />
+              </svg>
+              Asistente
+            </button>
+          </nav>
         </div>
+      </aside>
 
-        <nav aria-label="Secciones" class="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4">
-          <button type="button" data-ir-a="dashboard" class="pestana">Dashboard</button>
-          <button type="button" data-ir-a="estudiantes" class="pestana">Estudiantes</button>
-          <button type="button" data-ir-a="asistencia" class="pestana">Asistencia</button>
-          <button type="button" data-ir-a="disciplinas" class="pestana">Disciplinas</button>
-          <button type="button" data-ir-a="asistente" class="pestana">Asistente</button>
-        </nav>
-      </header>
-
-      <main class="mx-auto max-w-6xl px-4 py-8">
+      <main class="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
         <section data-vista="dashboard" class="hidden">
-          <div class="flex flex-wrap items-end justify-between gap-3">
+          <div class="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 class="titulo-vista">Dashboard</h2>
-              <p id="texto-actualizacion-dashboard" class="mt-1 text-sm text-slate-500"></p>
+              <p id="texto-actualizacion-dashboard" class="subtitulo-vista"></p>
             </div>
             <button id="boton-actualizar-dashboard" type="button" class="boton boton-secundario">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5" />
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16M16 16h5v5" />
+              </svg>
               Actualizar
             </button>
           </div>
 
-          <div class="mt-6 grid gap-4 lg:grid-cols-5">
-            <div class="rounded-3xl bg-tinta p-6 text-white sm:p-8 lg:col-span-3">
-              <div class="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 class="font-titulo text-2xl font-bold">Asistencia de hoy</h3>
-                <span id="dash-fecha" class="text-sm text-blue-200"></span>
+          <div class="mt-6 grid gap-4 lg:grid-cols-5 lg:gap-6">
+            <div class="tarjeta flex flex-col p-5 sm:p-6 lg:col-span-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <h3 class="titulo-tarjeta">Asistencia de hoy</h3>
+                <span id="dash-fecha" class="text-xs font-medium text-slate-500"></span>
               </div>
 
-              <div id="dash-asistencia-con-datos" class="mt-6 hidden">
-                <div class="flex items-end gap-3">
-                  <p id="dash-porcentaje" class="font-titulo text-7xl font-bold leading-none text-sol"></p>
-                  <p class="pb-1 text-sm text-blue-200">de presentes sobre los registrados</p>
+              <div id="dash-asistencia-con-datos" class="mt-5 hidden">
+                <div class="flex flex-wrap items-end gap-x-3 gap-y-1">
+                  <p
+                    id="dash-porcentaje"
+                    class="text-5xl font-semibold leading-none tracking-tight text-slate-900 tabular-nums"
+                  ></p>
+                  <p class="pb-1 text-sm text-slate-500">de presentes sobre los registrados</p>
                 </div>
-                <div class="mt-5 h-3 w-full overflow-hidden rounded-full bg-white/15" role="presentation">
+                <div class="mt-5 h-2 w-full overflow-hidden rounded-full bg-slate-100" role="presentation">
                   <div
                     id="dash-barra"
-                    class="h-full rounded-full bg-sol transition-[width] duration-700 motion-reduce:transition-none"
+                    class="h-full rounded-full bg-marca-600 transition-[width] duration-700 ease-out motion-reduce:transition-none"
                     style="width: 0%"
                   ></div>
                 </div>
               </div>
 
-              <div id="dash-asistencia-sin-datos" class="mt-6 hidden">
-                <p class="font-titulo text-3xl font-bold">Aún no se ha tomado asistencia hoy</p>
-                <button type="button" data-ir-a="asistencia" class="boton boton-sol mt-4">
-                  Tomar asistencia
-                </button>
+              <div id="dash-asistencia-sin-datos" class="mt-5 hidden">
+                <div class="flex items-start gap-4 rounded-lg border border-dashed border-slate-300 p-4">
+                  <div
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-marca-50 text-marca-600"
+                    aria-hidden="true"
+                  >
+                    <svg
+                      class="h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.75"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <rect x="3" y="4" width="18" height="18" rx="2" />
+                      <path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4" />
+                    </svg>
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-slate-900">Aún no se ha tomado asistencia hoy</p>
+                    <button
+                      type="button"
+                      data-ir-a="asistencia"
+                      class="boton boton-principal boton-chico mt-3"
+                    >
+                      Tomar asistencia
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <div id="dash-asistencia-sin-estudiantes" class="mt-6 hidden">
-                <p class="font-titulo text-3xl font-bold">No hay estudiantes activos todavía</p>
-                <button type="button" data-ir-a="estudiantes" class="boton boton-sol mt-4">
-                  Ir a Estudiantes
-                </button>
+              <div id="dash-asistencia-sin-estudiantes" class="mt-5 hidden">
+                <div class="flex items-start gap-4 rounded-lg border border-dashed border-slate-300 p-4">
+                  <div
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-marca-50 text-marca-600"
+                    aria-hidden="true"
+                  >
+                    <svg
+                      class="h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.75"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M19 8v6M22 11h-6" />
+                    </svg>
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-slate-900">No hay estudiantes activos todavía</p>
+                    <button
+                      type="button"
+                      data-ir-a="estudiantes"
+                      class="boton boton-principal boton-chico mt-3"
+                    >
+                      Ir a Estudiantes
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <dl
                 id="dash-asistencia-cifras"
-                class="mt-6 hidden grid grid-cols-3 gap-3 border-t border-white/15 pt-5"
+                class="mt-6 hidden grid grid-cols-3 gap-2 sm:gap-3 lg:mt-auto lg:pt-6"
               >
-                <div id="dash-bloque-presentes">
-                  <dt class="flex items-center gap-2 text-sm text-blue-200">
-                    <span class="h-2.5 w-2.5 rounded-full bg-emerald-400" aria-hidden="true"></span>Presentes
+                <div
+                  id="dash-bloque-presentes"
+                  class="rounded-lg bg-slate-50 px-3 py-3 ring-1 ring-inset ring-slate-100"
+                >
+                  <dt class="flex items-center gap-2 text-xs font-medium text-slate-500">
+                    <span class="punto bg-emerald-500" aria-hidden="true"></span>Presentes
                   </dt>
-                  <dd id="dash-presentes" class="mt-1 font-titulo text-4xl font-bold"></dd>
+                  <dd
+                    id="dash-presentes"
+                    class="mt-1.5 text-2xl font-semibold tracking-tight text-slate-900 tabular-nums"
+                  ></dd>
                 </div>
-                <div id="dash-bloque-ausentes">
-                  <dt class="flex items-center gap-2 text-sm text-blue-200">
-                    <span class="h-2.5 w-2.5 rounded-full bg-rose-400" aria-hidden="true"></span>Ausentes
+                <div
+                  id="dash-bloque-ausentes"
+                  class="rounded-lg bg-slate-50 px-3 py-3 ring-1 ring-inset ring-slate-100"
+                >
+                  <dt class="flex items-center gap-2 text-xs font-medium text-slate-500">
+                    <span class="punto bg-rose-500" aria-hidden="true"></span>Ausentes
                   </dt>
-                  <dd id="dash-ausentes" class="mt-1 font-titulo text-4xl font-bold"></dd>
+                  <dd
+                    id="dash-ausentes"
+                    class="mt-1.5 text-2xl font-semibold tracking-tight text-slate-900 tabular-nums"
+                  ></dd>
                 </div>
-                <div>
-                  <dt class="flex items-center gap-2 text-sm text-blue-200">
-                    <span class="h-2.5 w-2.5 rounded-full bg-orange-400" aria-hidden="true"></span>Sin
-                    registrar
+                <div class="rounded-lg bg-slate-50 px-3 py-3 ring-1 ring-inset ring-slate-100">
+                  <dt class="flex items-center gap-2 text-xs font-medium text-slate-500">
+                    <span class="punto bg-amber-400" aria-hidden="true"></span>Sin registrar
                   </dt>
-                  <dd id="dash-sin-registrar" class="mt-1 font-titulo text-4xl font-bold"></dd>
+                  <dd
+                    id="dash-sin-registrar"
+                    class="mt-1.5 text-2xl font-semibold tracking-tight text-slate-900 tabular-nums"
+                  ></dd>
                 </div>
               </dl>
             </div>
 
-            <div class="tarjeta p-6 lg:col-span-2">
-              <div class="flex items-center justify-between gap-3">
-                <h3 class="titulo-tarjeta">Estudiantes activos</h3>
-                <p id="dash-activos" class="font-titulo text-5xl font-bold leading-none text-tinta">—</p>
-              </div>
+            <div class="tarjeta flex flex-col p-5 sm:p-6 lg:col-span-2">
+              <h3 class="titulo-tarjeta">Estudiantes activos</h3>
+              <p
+                id="dash-activos"
+                class="mt-5 text-5xl font-semibold leading-none tracking-tight text-slate-900 tabular-nums"
+              >
+                —
+              </p>
 
-              <h4 class="mt-6 text-sm font-semibold text-slate-500">Estado de pago</h4>
-              <div class="mt-2 flex h-3 w-full overflow-hidden rounded-full bg-slate-100" role="presentation">
+              <h4 class="rotulo mt-7">Estado de pago</h4>
+              <div class="mt-3 flex h-2 w-full overflow-hidden rounded-full bg-slate-100" role="presentation">
                 <div id="dash-tramo-al-dia" class="h-full bg-emerald-500" style="width: 0%"></div>
-                <div id="dash-tramo-pendientes" class="h-full bg-orange-400" style="width: 0%"></div>
+                <div id="dash-tramo-pendientes" class="h-full bg-amber-400" style="width: 0%"></div>
                 <div id="dash-tramo-vencidos" class="h-full bg-rose-500" style="width: 0%"></div>
               </div>
 
-              <dl class="mt-3 divide-y divide-slate-100">
+              <dl class="mt-4 divide-y divide-slate-100">
                 <div class="flex items-center justify-between py-2.5">
-                  <dt class="flex items-center gap-2 text-sm text-slate-600">
-                    <span class="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true"></span>Al día
+                  <dt class="flex items-center gap-2.5 text-sm text-slate-600">
+                    <span class="punto bg-emerald-500" aria-hidden="true"></span>Al día
                   </dt>
-                  <dd id="dash-al-dia" class="font-titulo text-2xl font-bold text-slate-900">—</dd>
+                  <dd id="dash-al-dia" class="text-sm font-semibold text-slate-900 tabular-nums">—</dd>
                 </div>
                 <div class="flex items-center justify-between py-2.5">
-                  <dt class="flex items-center gap-2 text-sm text-slate-600">
-                    <span class="h-2.5 w-2.5 rounded-full bg-orange-400" aria-hidden="true"></span>Pendientes
+                  <dt class="flex items-center gap-2.5 text-sm text-slate-600">
+                    <span class="punto bg-amber-400" aria-hidden="true"></span>Pendientes
                   </dt>
-                  <dd id="dash-pendientes" class="font-titulo text-2xl font-bold text-slate-900">—</dd>
+                  <dd id="dash-pendientes" class="text-sm font-semibold text-slate-900 tabular-nums">—</dd>
                 </div>
                 <div class="flex items-center justify-between py-2.5">
-                  <dt class="flex items-center gap-2 text-sm text-slate-600">
-                    <span class="h-2.5 w-2.5 rounded-full bg-rose-500" aria-hidden="true"></span>Vencidos
+                  <dt class="flex items-center gap-2.5 text-sm text-slate-600">
+                    <span class="punto bg-rose-500" aria-hidden="true"></span>Vencidos
                   </dt>
-                  <dd id="dash-vencidos" class="font-titulo text-2xl font-bold text-slate-900">—</dd>
+                  <dd id="dash-vencidos" class="text-sm font-semibold text-slate-900 tabular-nums">—</dd>
                 </div>
               </dl>
             </div>
@@ -301,122 +506,128 @@
         </section>
 
         <section data-vista="estudiantes" class="hidden">
-          <div class="flex flex-wrap items-end justify-between gap-3">
+          <div class="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 class="titulo-vista">Estudiantes</h2>
-              <p id="contador-estudiantes" class="mt-1 text-sm text-slate-500"></p>
+              <p id="contador-estudiantes" class="subtitulo-vista"></p>
             </div>
             <button id="boton-nuevo-estudiante" type="button" class="boton boton-principal">
               + Nuevo estudiante
             </button>
           </div>
 
-          <div id="panel-formulario-estudiante" class="tarjeta mt-6 hidden border-t-4 border-t-sol p-6">
-            <h3 id="titulo-formulario-estudiante" class="titulo-tarjeta">Nuevo estudiante</h3>
+          <div id="panel-formulario-estudiante" class="tarjeta mt-6 hidden overflow-hidden">
+            <div class="border-b border-borde px-5 py-4 sm:px-6">
+              <h3 id="titulo-formulario-estudiante" class="titulo-tarjeta">Nuevo estudiante</h3>
+            </div>
 
-            <form id="formulario-estudiante" novalidate class="mt-4 grid gap-4 sm:grid-cols-2">
-              <div class="sm:col-span-2">
-                <label for="campo-nombre" class="etiqueta"
-                  >Nombre completo <span class="text-rose-600">*</span></label
-                >
-                <input
-                  id="campo-nombre"
-                  name="nombre_completo"
-                  type="text"
-                  maxlength="100"
-                  autocomplete="off"
-                  class="campo"
-                />
-                <p data-error-de="nombre_completo" class="error-de-campo hidden"></p>
+            <form id="formulario-estudiante" novalidate>
+              <div class="grid gap-x-5 gap-y-5 p-5 sm:grid-cols-2 sm:p-6">
+                <div class="sm:col-span-2">
+                  <label for="campo-nombre" class="etiqueta"
+                    >Nombre completo <span class="text-rose-500">*</span></label
+                  >
+                  <input
+                    id="campo-nombre"
+                    name="nombre_completo"
+                    type="text"
+                    maxlength="100"
+                    autocomplete="off"
+                    class="campo"
+                  />
+                  <p data-error-de="nombre_completo" class="error-de-campo hidden"></p>
+                </div>
+
+                <div>
+                  <label for="campo-edad" class="etiqueta">Edad <span class="text-rose-500">*</span></label>
+                  <input
+                    id="campo-edad"
+                    name="edad"
+                    type="number"
+                    inputmode="numeric"
+                    min="3"
+                    max="99"
+                    step="1"
+                    class="campo"
+                  />
+                  <p data-error-de="edad" class="error-de-campo hidden"></p>
+                </div>
+
+                <div>
+                  <label for="campo-disciplina" class="etiqueta"
+                    >Disciplina <span class="text-rose-500">*</span></label
+                  >
+                  <select id="campo-disciplina" name="disciplina_id" class="campo"></select>
+                  <p data-error-de="disciplina_id" class="error-de-campo hidden"></p>
+                </div>
+
+                <div>
+                  <label for="campo-categoria" class="etiqueta">Categoría</label>
+                  <input
+                    id="campo-categoria"
+                    name="categoria"
+                    type="text"
+                    maxlength="50"
+                    autocomplete="off"
+                    placeholder="Ej. Infantil, Sub-12, Principiante"
+                    class="campo"
+                  />
+                  <p data-error-de="categoria" class="error-de-campo hidden"></p>
+                </div>
+
+                <div>
+                  <label for="campo-estado-pago" class="etiqueta"
+                    >Estado de pago <span class="text-rose-500">*</span></label
+                  >
+                  <select id="campo-estado-pago" name="estado_pago" class="campo">
+                    <option value="al_dia" selected>Al día</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="vencido">Vencido</option>
+                  </select>
+                  <p data-error-de="estado_pago" class="error-de-campo hidden"></p>
+                </div>
+
+                <div class="border-t border-borde pt-5 sm:col-span-2">
+                  <h4 class="text-sm font-semibold text-slate-900">Acudiente</h4>
+                  <p id="ayuda-acudiente" class="mt-1 text-xs text-slate-500"></p>
+                </div>
+
+                <div>
+                  <label for="campo-acudiente-nombre" class="etiqueta"
+                    >Nombre del acudiente
+                    <span data-marca-acudiente class="hidden text-rose-500">*</span></label
+                  >
+                  <input
+                    id="campo-acudiente-nombre"
+                    name="acudiente_nombre"
+                    type="text"
+                    maxlength="100"
+                    autocomplete="off"
+                    class="campo"
+                  />
+                  <p data-error-de="acudiente_nombre" class="error-de-campo hidden"></p>
+                </div>
+
+                <div>
+                  <label for="campo-acudiente-telefono" class="etiqueta"
+                    >Teléfono del acudiente
+                    <span data-marca-acudiente class="hidden text-rose-500">*</span></label
+                  >
+                  <input
+                    id="campo-acudiente-telefono"
+                    name="acudiente_telefono"
+                    type="tel"
+                    maxlength="25"
+                    autocomplete="off"
+                    class="campo"
+                  />
+                  <p data-error-de="acudiente_telefono" class="error-de-campo hidden"></p>
+                </div>
               </div>
 
-              <div>
-                <label for="campo-edad" class="etiqueta">Edad <span class="text-rose-600">*</span></label>
-                <input
-                  id="campo-edad"
-                  name="edad"
-                  type="number"
-                  inputmode="numeric"
-                  min="3"
-                  max="99"
-                  step="1"
-                  class="campo"
-                />
-                <p data-error-de="edad" class="error-de-campo hidden"></p>
-              </div>
-
-              <div>
-                <label for="campo-disciplina" class="etiqueta"
-                  >Disciplina <span class="text-rose-600">*</span></label
-                >
-                <select id="campo-disciplina" name="disciplina_id" class="campo"></select>
-                <p data-error-de="disciplina_id" class="error-de-campo hidden"></p>
-              </div>
-
-              <div>
-                <label for="campo-categoria" class="etiqueta">Categoría</label>
-                <input
-                  id="campo-categoria"
-                  name="categoria"
-                  type="text"
-                  maxlength="50"
-                  autocomplete="off"
-                  placeholder="Ej. Infantil, Sub-12, Principiante"
-                  class="campo"
-                />
-                <p data-error-de="categoria" class="error-de-campo hidden"></p>
-              </div>
-
-              <div>
-                <label for="campo-estado-pago" class="etiqueta"
-                  >Estado de pago <span class="text-rose-600">*</span></label
-                >
-                <select id="campo-estado-pago" name="estado_pago" class="campo">
-                  <option value="al_dia" selected>Al día</option>
-                  <option value="pendiente">Pendiente</option>
-                  <option value="vencido">Vencido</option>
-                </select>
-                <p data-error-de="estado_pago" class="error-de-campo hidden"></p>
-              </div>
-
-              <div class="border-t border-slate-100 pt-4 sm:col-span-2">
-                <h4 class="text-sm font-semibold text-slate-900">Acudiente</h4>
-                <p id="ayuda-acudiente" class="mt-1 text-xs text-slate-500"></p>
-              </div>
-
-              <div>
-                <label for="campo-acudiente-nombre" class="etiqueta"
-                  >Nombre del acudiente
-                  <span data-marca-acudiente class="hidden text-rose-600">*</span></label
-                >
-                <input
-                  id="campo-acudiente-nombre"
-                  name="acudiente_nombre"
-                  type="text"
-                  maxlength="100"
-                  autocomplete="off"
-                  class="campo"
-                />
-                <p data-error-de="acudiente_nombre" class="error-de-campo hidden"></p>
-              </div>
-
-              <div>
-                <label for="campo-acudiente-telefono" class="etiqueta"
-                  >Teléfono del acudiente
-                  <span data-marca-acudiente class="hidden text-rose-600">*</span></label
-                >
-                <input
-                  id="campo-acudiente-telefono"
-                  name="acudiente_telefono"
-                  type="tel"
-                  maxlength="25"
-                  autocomplete="off"
-                  class="campo"
-                />
-                <p data-error-de="acudiente_telefono" class="error-de-campo hidden"></p>
-              </div>
-
-              <div class="flex flex-col-reverse gap-2 sm:col-span-2 sm:flex-row sm:justify-end">
+              <div
+                class="flex flex-col-reverse gap-2 border-t border-borde bg-slate-50 px-5 py-4 sm:flex-row sm:justify-end sm:px-6"
+              >
                 <button id="boton-cancelar-estudiante" type="button" class="boton boton-secundario">
                   Cancelar
                 </button>
@@ -428,22 +639,39 @@
           </div>
 
           <div class="mt-6 flex flex-col gap-3 md:flex-row md:items-center">
-            <div class="md:flex-1">
+            <div class="relative md:flex-1">
               <label for="filtro-texto" class="sr-only">Buscar por nombre</label>
+              <svg
+                class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
               <input
                 id="filtro-texto"
                 type="search"
                 placeholder="Buscar por nombre"
                 autocomplete="off"
-                class="campo"
+                class="campo pl-9"
               />
             </div>
-            <div class="md:w-60">
+            <div class="md:w-56">
               <label for="filtro-disciplina" class="sr-only">Filtrar por disciplina</label>
               <select id="filtro-disciplina" class="campo"></select>
             </div>
-            <label class="flex items-center gap-2 text-sm text-slate-700">
-              <input id="filtro-inactivos" type="checkbox" class="h-4 w-4 accent-tinta" />
+            <label class="flex cursor-pointer select-none items-center gap-2 text-sm text-slate-600 md:pl-1">
+              <input
+                id="filtro-inactivos"
+                type="checkbox"
+                class="h-4 w-4 cursor-pointer rounded border-slate-300 accent-marca-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-500 focus-visible:ring-offset-2"
+              />
               Mostrar inactivos
             </label>
           </div>
@@ -453,23 +681,25 @@
 
             <div
               id="contenedor-tabla-estudiantes"
-              class="md:overflow-hidden md:rounded-2xl md:border md:border-slate-200 md:bg-white"
+              class="xl:overflow-x-auto xl:rounded-xl xl:border xl:border-borde xl:bg-white xl:shadow-suave"
             >
-              <table class="block w-full text-left text-sm md:table">
-                <thead class="hidden bg-slate-50 text-xs text-slate-500 md:table-header-group">
+              <table class="block w-full text-left text-sm xl:table">
+                <thead
+                  class="hidden border-b border-borde bg-slate-50 text-xs text-slate-500 xl:table-header-group"
+                >
                   <tr>
-                    <th class="px-4 py-3 font-semibold">Nombre</th>
-                    <th class="px-4 py-3 font-semibold">Edad</th>
-                    <th class="px-4 py-3 font-semibold">Disciplina</th>
-                    <th class="px-4 py-3 font-semibold">Categoría</th>
-                    <th class="px-4 py-3 font-semibold">Acudiente</th>
-                    <th class="px-4 py-3 font-semibold">Pago</th>
-                    <th class="px-4 py-3 text-right font-semibold">Acciones</th>
+                    <th class="px-4 py-2.5 font-medium">Nombre</th>
+                    <th class="px-4 py-2.5 font-medium">Edad</th>
+                    <th class="px-4 py-2.5 font-medium">Disciplina</th>
+                    <th class="px-4 py-2.5 font-medium">Categoría</th>
+                    <th class="px-4 py-2.5 font-medium">Acudiente</th>
+                    <th class="px-4 py-2.5 font-medium">Pago</th>
+                    <th class="px-4 py-2.5 text-right font-medium">Acciones</th>
                   </tr>
                 </thead>
                 <tbody
                   id="cuerpo-tabla-estudiantes"
-                  class="block space-y-3 md:table-row-group md:space-y-0 md:divide-y md:divide-slate-100"
+                  class="block space-y-3 sm:grid sm:grid-cols-2 sm:gap-3 sm:space-y-0 xl:table-row-group xl:space-y-0 xl:divide-y xl:divide-slate-100"
                 ></tbody>
               </table>
             </div>
@@ -478,7 +708,7 @@
 
         <section data-vista="asistencia" class="hidden">
           <h2 class="titulo-vista">Asistencia</h2>
-          <p class="mt-1 max-w-2xl text-sm text-slate-500">
+          <p class="subtitulo-vista">
             Elige la fecha, marca quién vino y pulsa «Guardar asistencia». Solo aparecen los estudiantes
             activos.
           </p>
@@ -488,14 +718,14 @@
 
         <section data-vista="disciplinas" class="hidden">
           <h2 class="titulo-vista">Disciplinas</h2>
-          <p class="mt-1 max-w-2xl text-sm text-slate-500">
+          <p class="subtitulo-vista">
             Son las actividades de la academia (fútbol, guitarra, danza...). Cada estudiante pertenece a una.
           </p>
 
           <form
             id="formulario-disciplina"
             novalidate
-            class="tarjeta mt-6 flex flex-col gap-3 p-5 sm:flex-row sm:items-end"
+            class="tarjeta mt-6 flex flex-col gap-3 p-4 sm:flex-row sm:items-end sm:p-5"
           >
             <div class="sm:flex-1">
               <label for="campo-disciplina-nombre" class="etiqueta">Nueva disciplina</label>
@@ -519,27 +749,66 @@
 
         <section data-vista="asistente" class="hidden">
           <h2 class="titulo-vista">Asistente</h2>
-          <p class="mt-1 max-w-2xl text-sm text-slate-500">
-            Revisa tus estudiantes y te señala lo que necesita atención hoy.
-          </p>
+          <p class="subtitulo-vista">Revisa tus estudiantes y te señala lo que necesita atención hoy.</p>
 
-          <div class="mt-6 grid gap-4 lg:grid-cols-3">
-            <div class="tarjeta p-5 lg:col-span-2">
+          <div class="mt-6 grid gap-4 lg:grid-cols-3 lg:gap-6">
+            <div class="tarjeta p-5 sm:p-6 lg:col-span-2">
               <h3 class="titulo-tarjeta">Qué necesita tu atención</h3>
               <ul id="lista-hallazgos" class="mt-4 space-y-3"></ul>
             </div>
 
-            <div class="tarjeta p-5">
+            <div class="tarjeta self-start p-5 sm:p-6">
               <h3 class="titulo-tarjeta">Cómo van tus grupos</h3>
-              <dl id="resumen-negocio" class="mt-4 space-y-4"></dl>
+              <dl id="resumen-negocio" class="mt-4 grid grid-cols-2 gap-3"></dl>
             </div>
           </div>
 
-          <div class="tarjeta mt-4 p-5">
-            <h3 class="titulo-tarjeta">Pregúntale a tus datos</h3>
-            <p id="estado-ia" class="mt-1 text-sm text-slate-500"></p>
+          <div class="tarjeta mt-4 p-5 sm:p-6 lg:mt-6">
+            <h3 class="titulo-tarjeta">Por disciplina</h3>
+            <p id="mensaje-sin-grupos-asistente" class="vacio mt-4 hidden">
+              Aún no hay disciplinas. Créalas en la vista Disciplinas para ver cómo va cada grupo.
+            </p>
+            <ul id="lista-grupos-asistente" class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"></ul>
+          </div>
 
-            <form id="formulario-pregunta" novalidate class="mt-4 flex flex-col gap-3 sm:flex-row">
+          <div class="tarjeta mt-4 p-5 sm:p-6 lg:mt-6">
+            <div class="flex items-center gap-3">
+              <div
+                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-marca-50 text-marca-600 ring-1 ring-inset ring-marca-600/10"
+                aria-hidden="true"
+              >
+                <svg
+                  class="h-[18px] w-[18px]"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 3l1.9 5.8 5.8 1.9-5.8 1.9L12 18.4l-1.9-5.8-5.8-1.9 5.8-1.9L12 3z" />
+                  <path d="M19 3v4M17 5h4M5 17v4M3 19h4" />
+                </svg>
+              </div>
+              <h3 class="titulo-tarjeta">Pregúntale a tus datos</h3>
+            </div>
+            <p
+              id="estado-ia"
+              class="mt-4 flex items-start gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600 ring-1 ring-inset ring-slate-200 before:mt-[7px] before:h-1.5 before:w-1.5 before:shrink-0 before:rounded-full before:bg-marca-500 before:content-['']"
+            ></p>
+
+            <div
+              id="respuesta-asistente"
+              class="mt-4 hidden max-w-3xl whitespace-pre-line rounded-2xl rounded-tl-md bg-marca-50/60 px-4 py-3.5 text-sm leading-relaxed text-slate-800 ring-1 ring-inset ring-marca-100 motion-safe:animate-aparecer"
+            ></div>
+
+            <div id="sugerencias-pregunta" class="mt-4 flex flex-wrap gap-2"></div>
+
+            <form
+              id="formulario-pregunta"
+              novalidate
+              class="mt-3 flex flex-col gap-2 rounded-xl border border-slate-300 bg-white p-1.5 shadow-suave transition-[border-color,box-shadow] focus-within:border-marca-500 focus-within:ring-4 focus-within:ring-marca-500/15 sm:flex-row sm:items-center"
+            >
               <label for="campo-pregunta" class="sr-only">Tu pregunta</label>
               <input
                 id="campo-pregunta"
@@ -547,16 +816,10 @@
                 maxlength="300"
                 autocomplete="off"
                 placeholder="¿A quién debo cobrarle este mes?"
-                class="campo sm:flex-1"
+                class="campo border-transparent shadow-none hover:border-transparent focus:border-transparent focus:ring-0 sm:flex-1"
               />
               <button id="boton-preguntar" type="submit" class="boton boton-principal">Preguntar</button>
             </form>
-
-            <div id="sugerencias-pregunta" class="mt-3 flex flex-wrap gap-2"></div>
-            <div
-              id="respuesta-asistente"
-              class="mt-4 hidden whitespace-pre-line rounded-xl bg-papel p-4 text-sm leading-relaxed text-slate-700"
-            ></div>
           </div>
         </section>
       </main>
@@ -564,28 +827,33 @@
 
     <template id="plantilla-fila-estudiante">
       <tr
-        class="group block rounded-2xl border border-slate-200 bg-white p-4 data-[inactivo=true]:bg-slate-50 md:table-row md:rounded-none md:border-0 md:p-0"
+        class="group block rounded-xl border border-borde bg-white p-4 shadow-suave transition-colors data-[inactivo=true]:bg-slate-50/70 xl:table-row xl:rounded-none xl:border-0 xl:p-0 xl:shadow-none xl:hover:bg-slate-50/70"
       >
-        <td class="mb-3 block md:mb-0 md:table-cell md:px-4 md:py-3">
+        <td class="mb-3 block xl:mb-0 xl:table-cell xl:min-w-[10rem] xl:px-4 xl:py-3.5 xl:align-middle">
           <div class="flex items-center gap-3">
             <span
               data-texto="iniciales"
-              class="iniciales group-data-[inactivo=true]:bg-slate-300 group-data-[inactivo=true]:text-white"
+              class="iniciales group-data-[inactivo=true]:bg-slate-100 group-data-[inactivo=true]:text-slate-400 group-data-[inactivo=true]:ring-slate-200"
               aria-hidden="true"
             ></span>
             <div class="min-w-0">
               <span
                 data-texto="nombre"
-                class="font-semibold text-slate-900 group-data-[inactivo=true]:text-slate-500"
+                class="font-medium text-slate-900 group-data-[inactivo=true]:text-slate-500"
               ></span>
-              <span data-texto="etiqueta-inactivo" class="chip ml-1 hidden bg-slate-200 text-slate-600"
+              <span
+                data-texto="etiqueta-inactivo"
+                class="chip ml-1.5 hidden bg-slate-100 text-slate-600 ring-slate-500/15"
                 >Inactivo</span
               >
             </div>
           </div>
         </td>
 
-        <td data-etiqueta="Edad" class="celda group-data-[inactivo=true]:text-slate-400 md:whitespace-nowrap">
+        <td
+          data-etiqueta="Edad"
+          class="celda tabular-nums group-data-[inactivo=true]:text-slate-400 xl:whitespace-nowrap"
+        >
           <span data-texto="edad"></span>
         </td>
 
@@ -598,35 +866,37 @@
         </td>
 
         <td data-etiqueta="Acudiente" class="celda group-data-[inactivo=true]:text-slate-400">
-          <div>
-            <p data-texto="acudiente"></p>
+          <div class="min-w-0">
+            <p data-texto="acudiente" class="text-slate-700 group-data-[inactivo=true]:text-slate-400"></p>
             <p
               data-texto="telefono-acudiente"
-              class="text-xs text-slate-500 group-data-[inactivo=true]:text-slate-400"
+              class="whitespace-nowrap text-xs text-slate-500 tabular-nums group-data-[inactivo=true]:text-slate-400"
             ></p>
           </div>
         </td>
 
         <td data-etiqueta="Pago" class="celda">
-          <span data-texto="estado-pago" class="chip"></span>
+          <span data-texto="estado-pago" class="chip chip-punto"></span>
         </td>
 
-        <td class="mt-3 block md:mt-0 md:table-cell md:whitespace-nowrap md:px-4 md:py-3">
-          <div class="flex flex-wrap gap-2 md:flex-nowrap md:justify-end">
+        <td
+          class="mt-3 block border-t border-slate-100 pt-3 xl:mt-0 xl:table-cell xl:whitespace-nowrap xl:border-0 xl:px-4 xl:py-3.5 xl:align-middle"
+        >
+          <div class="flex flex-wrap gap-2 xl:flex-nowrap xl:justify-end">
             <button type="button" data-accion="editar" class="boton boton-chico boton-secundario">
               Editar
             </button>
             <button
               type="button"
               data-accion="desactivar"
-              class="boton boton-chico border border-rose-200 bg-white text-rose-700 hover:bg-rose-50"
+              class="boton boton-chico boton-secundario text-rose-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
             >
               Desactivar
             </button>
             <button
               type="button"
               data-accion="reactivar"
-              class="boton boton-chico hidden border border-emerald-300 bg-white text-emerald-700 hover:bg-emerald-50"
+              class="boton boton-chico boton-secundario hidden text-emerald-700 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800"
             >
               Reactivar
             </button>

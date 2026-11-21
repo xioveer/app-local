@@ -22,8 +22,9 @@ function llenarSelectsDeDisciplinas() {
 function crearElementoDeDisciplina(disciplina) {
   const elemento = document.createElement("li");
   elemento.className =
-    "tarjeta flex items-center gap-3 px-4 py-3 font-semibold text-tinta " +
-    "before:h-6 before:w-1.5 before:rounded-full before:bg-sol";
+    "tarjeta flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-slate-900 " +
+    "before:h-2.5 before:w-2.5 before:shrink-0 before:rounded-full before:bg-marca-500 " +
+    "before:ring-4 before:ring-marca-500/15 before:content-['']";
   elemento.textContent = disciplina.nombre;
   return elemento;
 }

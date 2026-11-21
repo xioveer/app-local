@@ -2,69 +2,160 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    @apply bg-marca-100 text-marca-800;
+  }
+  dialog::backdrop {
+    background-color: rgb(15 23 42 / 0.4);
+    backdrop-filter: blur(2px);
+  }
+  input[type="search"]::-webkit-search-cancel-button {
+    cursor: pointer;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
 @layer components {
   .tarjeta {
-    @apply rounded-2xl border border-slate-200 bg-white;
+    @apply rounded-xl border border-borde bg-white shadow-suave;
   }
   .vacio {
-    @apply rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-sm text-slate-500;
+    @apply rounded-xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm leading-6 text-slate-500;
+  }
+  .vacio::before {
+    content: "";
+    display: block;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin: 0 auto 0.875rem;
+    border-radius: 0.75rem;
+    background: #f1f5f9
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 12h-6l-2 3h-4l-2-3H2'/%3E%3Cpath d='M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z'/%3E%3C/svg%3E")
+      center / 1.25rem no-repeat;
   }
 
   .titulo-vista {
-    @apply font-titulo text-4xl font-bold text-tinta;
+    @apply text-2xl font-semibold tracking-tight text-slate-900;
+  }
+  .subtitulo-vista {
+    @apply mt-1 max-w-2xl text-sm leading-6 text-slate-500;
   }
   .titulo-tarjeta {
-    @apply font-titulo text-2xl font-bold text-tinta;
+    @apply text-base font-semibold tracking-tight text-slate-900;
+  }
+  .rotulo {
+    @apply text-xs font-medium uppercase tracking-wider text-slate-500;
+  }
+
+  .marca-logo {
+    @apply flex shrink-0 items-center justify-center rounded-lg bg-marca-600 font-semibold tracking-tight text-white shadow-suave ring-1 ring-inset ring-black/10;
   }
 
   .pestana {
-    @apply shrink-0 rounded-t-xl px-2 py-2.5 font-titulo text-base font-semibold text-blue-100 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sol sm:px-5 sm:text-lg;
+    @apply inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 border-transparent px-1 pb-3 pt-2 text-sm font-medium text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-900 focus:outline-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-marca-500 lg:w-full lg:rounded-lg lg:border-b-0 lg:px-2.5 lg:py-2 lg:hover:bg-slate-100;
+  }
+  .pestana > svg {
+    @apply hidden h-[18px] w-[18px] shrink-0 text-slate-400 transition-colors lg:block;
+  }
+  .pestana:hover > svg {
+    @apply text-slate-600;
   }
   .pestana[aria-current="page"] {
-    @apply bg-papel text-tinta;
+    @apply border-marca-600 text-slate-900 lg:bg-slate-100;
+  }
+  .pestana[aria-current="page"] > svg {
+    @apply text-marca-600;
   }
 
   .boton {
-    @apply inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-tinta focus-visible:ring-offset-2;
+    @apply inline-flex h-9 select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-marca-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  }
+  .boton > svg {
+    @apply h-4 w-4 shrink-0;
   }
   .boton-principal {
-    @apply bg-tinta text-white hover:bg-blue-900;
-  }
-  .boton-sol {
-    @apply bg-sol text-tinta hover:bg-yellow-300 focus-visible:ring-sol focus-visible:ring-offset-tinta;
+    @apply bg-marca-600 text-white shadow-suave hover:bg-marca-700 active:bg-marca-800;
   }
   .boton-secundario {
-    @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-100;
+    @apply border border-slate-300 bg-white text-slate-700 shadow-suave hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100;
   }
   .boton-peligro {
-    @apply bg-rose-600 text-white hover:bg-rose-700;
+    @apply bg-rose-600 text-white shadow-suave hover:bg-rose-700 focus-visible:ring-rose-500;
+  }
+  .boton-fantasma {
+    @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900;
+  }
+  .boton-google {
+    @apply h-11 gap-3 border border-slate-300 bg-white text-[15px] text-slate-800 shadow-suave hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100;
   }
   .boton-chico {
-    @apply h-8 px-3 text-xs;
+    @apply h-8 rounded-md px-3 text-xs;
   }
 
   .etiqueta {
-    @apply mb-1 block text-sm font-medium text-slate-700;
+    @apply mb-1.5 block text-sm font-medium text-slate-700;
   }
   .campo {
-    @apply block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 focus:border-tinta focus:outline-none focus:ring-2 focus:ring-tinta/20;
+    @apply block h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-suave transition-[border-color,box-shadow] placeholder:text-slate-400 hover:border-slate-400 focus:border-marca-500 focus:outline-none focus:ring-4 focus:ring-marca-500/15;
+  }
+  select.campo {
+    @apply appearance-none pr-9;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'%3E%3Cpath fill-rule='evenodd' d='M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-position: right 0.625rem center;
+    background-repeat: no-repeat;
+    background-size: 1rem;
   }
   .campo[aria-invalid="true"] {
-    @apply border-rose-500;
+    @apply border-rose-500 hover:border-rose-500 focus:border-rose-500 focus:ring-rose-500/15;
   }
   .error-de-campo {
-    @apply mt-1 text-xs font-medium text-rose-600;
+    @apply mt-1.5 text-xs font-medium text-rose-600;
   }
 
   .chip {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+    @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset;
+  }
+  .chip-punto::before {
+    content: "";
+    @apply h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-80;
   }
 
   .iniciales {
-    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-tinta font-titulo text-sm font-bold text-sol;
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-marca-50 text-xs font-semibold text-marca-700 ring-1 ring-inset ring-marca-600/10;
   }
 
   .celda {
-    @apply flex gap-2 py-0.5 text-slate-600 before:w-24 before:shrink-0 before:text-xs before:font-medium before:leading-5 before:text-slate-400 before:content-[attr(data-etiqueta)] md:table-cell md:px-4 md:py-3 md:before:hidden;
+    @apply flex items-baseline gap-3 py-1 text-slate-600 before:w-24 before:shrink-0 before:text-xs before:font-medium before:text-slate-400 before:content-[attr(data-etiqueta)] xl:table-cell xl:px-4 xl:py-3.5 xl:align-middle xl:before:hidden;
+  }
+
+  .fondo-login {
+    background-image:
+      radial-gradient(ellipse 70% 45% at 50% 0%, rgb(79 70 229 / 0.12), transparent 70%),
+      linear-gradient(to right, rgb(15 23 42 / 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(15 23 42 / 0.045) 1px, transparent 1px);
+    background-size:
+      100% 100%,
+      2.5rem 2.5rem,
+      2.5rem 2.5rem;
+    -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, #000 35%, transparent 100%);
+    mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, #000 35%, transparent 100%);
+  }
+
+  .punto {
+    @apply h-2 w-2 shrink-0 rounded-full;
   }
 }

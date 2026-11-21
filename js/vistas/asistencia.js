@@ -40,14 +40,14 @@ function FilaDeAsistencia({ estudiante, presente, tieneRegistro, alCambiar }) {
   const detalle = [disciplina, estudiante.categoria].filter(Boolean).join(", ");
 
   return html`
-    <li className="flex items-center justify-between gap-3 px-4 py-3">
+    <li className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-slate-50/70 sm:px-5">
       <div className="flex min-w-0 items-center gap-3">
         <span className="iniciales hidden sm:flex" aria-hidden="true">${obtenerIniciales(estudiante.nombre_completo)}</span>
         <div className="min-w-0">
-          <p data-texto="nombre" className="truncate font-semibold text-slate-900">${estudiante.nombre_completo}</p>
+          <p data-texto="nombre" className="truncate text-sm font-medium text-slate-900">${estudiante.nombre_completo}</p>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
             <span data-texto="detalle">${detalle || "—"}</span>
-            ${!tieneRegistro && html`<span data-texto="sin-registro" className="chip bg-orange-100 text-orange-800">Sin registrar</span>`}
+            ${!tieneRegistro && html`<span data-texto="sin-registro" className="chip bg-amber-50 text-amber-800 ring-amber-600/25">Sin registrar</span>`}
           </p>
         </div>
       </div>
@@ -57,29 +57,29 @@ function FilaDeAsistencia({ estudiante, presente, tieneRegistro, alCambiar }) {
                aria-label=${"Asistencia de " + estudiante.nombre_completo}
                checked=${presente}
                onChange=${(evento) => alCambiar(estudiante.id, evento.target.checked)} />
-        <span className="h-7 w-12 rounded-full bg-slate-300 transition-colors peer-checked:bg-emerald-500 peer-focus-visible:ring-2 peer-focus-visible:ring-tinta peer-focus-visible:ring-offset-2"></span>
-        <span className="pointer-events-none absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"></span>
-        <span data-texto="estado" className=${"w-16 text-sm font-semibold " + (presente ? "text-emerald-700" : "text-slate-500")}>${presente ? "Presente" : "Ausente"}</span>
+        <span className="h-6 w-11 rounded-full bg-slate-200 shadow-inner transition-colors peer-checked:bg-emerald-500 peer-focus-visible:ring-2 peer-focus-visible:ring-marca-500 peer-focus-visible:ring-offset-2"></span>
+        <span className="pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm ring-1 ring-slate-900/5 transition-transform peer-checked:translate-x-5"></span>
+        <span data-texto="estado" className=${"w-16 text-sm font-medium " + (presente ? "text-emerald-700" : "text-slate-500")}>${presente ? "Presente" : "Ausente"}</span>
       </label>
     </li>
   `;
 }
 
 function BarraDeGuardado({ presentes, ausentes, total, modificada, alGuardar }) {
-  const numero = "font-titulo text-xl font-bold text-white";
+  const numero = "text-base font-semibold text-slate-900 tabular-nums";
 
   return html`
-    <div className="sticky bottom-0 z-10 -mx-4 mt-4 flex items-center justify-between gap-3 bg-tinta px-4 py-3 text-white sm:bottom-4 sm:mx-0 sm:rounded-2xl sm:px-5">
+    <div className="sticky bottom-0 z-10 -mx-4 mt-4 flex items-center justify-between gap-3 border-t border-borde bg-white/90 px-4 py-3 backdrop-blur sm:bottom-4 sm:mx-0 sm:rounded-xl sm:border sm:px-5 sm:shadow-flotante">
       <div className="min-w-0">
-        <p id="resumen-asistencia" className="flex flex-wrap items-baseline gap-x-4 text-sm text-blue-100">
+        <p id="resumen-asistencia" className="flex flex-wrap items-baseline gap-x-4 text-sm text-slate-500">
           <span><span className=${numero}>${presentes}</span> presentes</span>
           <span><span className=${numero}>${ausentes}</span> ausentes</span>
           <span className="hidden sm:inline"><span className=${numero}>${total}</span> en total</span>
         </p>
-        ${modificada && html`<p id="aviso-sin-guardar" className="text-xs font-semibold text-sol">Cambios sin guardar</p>`}
+        ${modificada && html`<p id="aviso-sin-guardar" className="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-amber-700 before:h-1.5 before:w-1.5 before:rounded-full before:bg-amber-500 before:content-['']">Cambios sin guardar</p>`}
       </div>
       <button id="boton-guardar-asistencia" type="button" onClick=${alGuardar}
-              className="boton boton-sol shrink-0">
+              className="boton boton-principal shrink-0">
         Guardar asistencia
       </button>
     </div>
@@ -94,7 +94,7 @@ function SelectorDeFechaYDisciplina({
   alCambiarDisciplina,
 }) {
   return html`
-    <div className="tarjeta mt-6 flex flex-col gap-3 p-5 sm:flex-row sm:items-end">
+    <div className="tarjeta mt-6 flex flex-col gap-4 p-4 sm:flex-row sm:items-end sm:p-5">
       <div>
         <label htmlFor="campo-fecha-asistencia" className="etiqueta">Fecha</label>
         <div className="flex gap-2">

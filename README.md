@@ -182,7 +182,9 @@ Esta distinción es importante para explicar el proyecto con honestidad.
 
 **El análisis local** calcula un puntaje de riesgo de que un estudiante se retire, sumando reglas explícitas: faltar a clases seguidas, asistir a menos del 60 % de las últimas clases y tener el pago pendiente o vencido. Cada conclusión muestra la regla que la produjo («faltó a las últimas 3 clases seguidas»). No es un modelo entrenado, y por eso se puede explicar entera.
 
-**Al modelo** solo se le envían **cifras agrupadas**: cuántos estudiantes activos hay, cuántos están al día, el porcentaje de asistencia. Nunca nombres, teléfonos ni datos de los acudientes. Si no hay clave configurada, la función responde que no está disponible y la aplicación contesta con el análisis local, sin que la persona note una caída.
+Además muestra cifras por disciplina, la tendencia de la asistencia (últimos 7 días frente a los 7 anteriores), quién no tiene asistencia registrada y una lista de cobro ordenada por urgencia. Cada hallazgo termina con un «Qué hacer». Entiende preguntas escritas de muchas formas: sin importar tildes ni mayúsculas, con sinónimos («morosos», «deben», «sin pagar»; «no vienen», «faltas») y nombrando una disciplina («¿cómo va guitarra?») o un estudiante («¿cómo va Samuel?»). Hay botones con preguntas sugeridas.
+
+**Al modelo** solo se le envían **cifras agrupadas**: totales de estudiantes activos, al día, pendientes, vencidos, en riesgo, con faltas seguidas, asistencia promedio, la tendencia semanal y esas mismas cifras por disciplina. Nunca nombres, teléfonos ni datos de los acudientes, y si la pregunta nombra a un estudiante responde solo el análisis local. La función exige sesión iniciada y rechaza peticiones demasiado grandes. Si no hay clave configurada, la función responde que no está disponible y la aplicación contesta con el análisis local, sin que la persona note una caída.
 
 ## 7. Solución de problemas
 
